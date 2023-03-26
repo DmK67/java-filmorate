@@ -29,7 +29,7 @@ class UserControllerTest {
         user.setName("");
         userController.addUser(user);
 
-        assertEquals("login" , user.getName(), "Имя пользователя не записалось");
+        assertEquals("login", user.getName(), "Имя пользователя не записалось");
 
         user.setName("name");
         user.setEmail("");
@@ -57,8 +57,8 @@ class UserControllerTest {
 
         user.setLogin("login");
 
-        assertEquals(1, userController.getUsers().size(), "Не верное количество пользователей");
-        assertNotNull(userController.getUsers(), "Список пользователей - пустой!");
+        assertEquals(1, userController.listUsers().size(), "Не верное количество пользователей");
+        assertNotNull(userController.listUsers(), "Список пользователей - пустой!");
     }
 
     @Test
@@ -67,7 +67,7 @@ class UserControllerTest {
         user.setName("");
         userController.updateUser(user);
 
-        assertEquals("login" , user.getName(), "Имя пользователя не записалось");
+        assertEquals("login", user.getName(), "Имя пользователя не записалось");
 
         user.setName("name");
         user.setEmail("");
@@ -104,15 +104,15 @@ class UserControllerTest {
                 .build();
         userController.updateUser(user2);
 
-        assertEquals(1, userController.getUsers().size(), "Пользователь не обновлен!");
-        assertNotNull(userController.getUsers(), "Список пользователей - пустой!");
+        assertEquals(1, userController.listUsers().size(), "Пользователь не обновлен!");
+        assertNotNull(userController.listUsers(), "Список пользователей - пустой!");
     }
 
     @Test
     void getlistUsers() {
         userController.addUser(user);
 
-        assertEquals(1,userController.getUsers().size(), "Количество пользователей не соответствует!");
-        assertNotNull(userController.getUsers(), "Список пользователей пустой!");
+        assertEquals(1, userController.listUsers().size(), "Количество пользователей не соответствует!");
+        assertNotNull(userController.listUsers(), "Список пользователей пустой!");
     }
 }

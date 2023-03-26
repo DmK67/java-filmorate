@@ -1,6 +1,5 @@
 package ru.yandex.practicum.filmorate.controllers;
 
-import lombok.NonNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
@@ -125,7 +124,7 @@ class FilmControllerTest {
     void getlistFilms() {
         filmController.addFilm(film);
 
-        assertEquals(1,filmController.getFilms().size(), "Количество фильмов не соответствует!");
-        assertNotNull(filmController.getFilms(), "Список фильмов пустой!");
+        assertEquals(1, filmController.listFilms().size(), "Количество фильмов не соответствует!");
+        assertNotNull(filmController.listFilms(), "Список фильмов пустой!");
     }
 }
