@@ -42,7 +42,7 @@ public class UserController {
         if (!users.containsKey(user.getId())) {
             throw new NotFoundException(user + " Такой пользователь не зарегистрирован");
         }
-        resultValidUser=validationUser(user);
+        resultValidUser = validationUser(user);
         if (resultValidUser) {
             users.put(user.getId(), user);
             log.info(user + " Пользователь успешно обновлен.");
