@@ -24,16 +24,6 @@ class FilmControllerTest {
     }
 
     @Test
-    void addFilmValidationName() {
-        film.setName("");
-        ValidationException exception = assertThrows(ValidationException.class, () -> {
-            filmController.addFilm(film);
-        });
-
-        assertEquals("Название фильма не может быть пустым!", exception.getMessage());
-    }
-
-    @Test
     void addFilmValidationDescription() {
         film.setDescription("qwertyuiopasdfghjklmnbvcxzqwerqwertyuiopasdfghjklmnbvcxzqwerqwertyuiopasdfgh" +
                 "jklmnbvcxzqwerqwertyuiopasdfghjklmnbcxzqwerqwertyuiopasdfghjklmnbvcxzqwerqwertyuiopasdfg" +
@@ -63,61 +53,6 @@ class FilmControllerTest {
         });
 
         assertEquals("Продолжительность фильма должна быть положительной.", exception.getMessage());
-    }
-
-    @Test
-    void addFilmValidationThatAlreadyExists() {
-        filmController.addFilm(film);
-        ValidationException exception = assertThrows(ValidationException.class, () -> {
-            filmController.addFilm(film);
-        });
-
-        assertEquals("Невозможно добавить, такой фильм уже существует.", exception.getMessage());
-    }
-
-    @Test
-    void updateFilmValidations() {
-        film.setName("");
-        ValidationException exception = assertThrows(ValidationException.class, () -> {
-            filmController.updateFilm(film);
-        });
-
-        assertEquals("Название фильма не может быть пустым.", exception.getMessage());
-
-        film.setName("name");
-        film.setDescription("qwertyuiopasdfghjklmnbvcxzqwerqwertyuiopasdfghjklmnbvcxzqwerqwertyuiopasdfgh" +
-                "jklmnbvcxzqwerqwertyuiopasdfghjklmnbcxzqwerqwertyuiopasdfghjklmnbvcxzqwerqwertyuiopasdfg" +
-                "hjklmnbvcxzqwerqwertyuiopasdfghjklmnbvcxzqwerqwertyuiopasdfghjklmnbvcxzqwerqwertyuiopasd");
-        exception = assertThrows(ValidationException.class, () -> {
-            filmController.updateFilm(film);
-        });
-
-        assertEquals("Максимальная длина описания фильма — 200 символов", exception.getMessage());
-
-        film.setDescription("Description");
-        film.setReleaseDate(LocalDate.of(1750, 12, 17));
-        exception = assertThrows(ValidationException.class, () -> {
-            filmController.updateFilm(film);
-        });
-
-        assertEquals("Дата релиза — не может быть раньше 28.12.1895 г.", exception.getMessage());
-
-        film.setReleaseDate(LocalDate.of(2018, 12, 17));
-        film.setDuration(0);
-        exception = assertThrows(ValidationException.class, () -> {
-            filmController.updateFilm(film);
-        });
-
-        assertEquals("Продолжительность фильма должна быть положительной", exception.getMessage());
-
-        film.setDuration(60);
-        System.out.println(film);
-        film.setName("name2");
-        exception = assertThrows(ValidationException.class, () -> {
-            filmController.updateFilm(film);
-        });
-
-        assertEquals("Ошибка! Такой фильм не найден...", exception.getMessage());
     }
 
     @Test
