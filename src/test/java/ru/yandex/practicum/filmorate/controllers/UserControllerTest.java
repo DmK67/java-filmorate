@@ -21,7 +21,7 @@ class UserControllerTest {
                 .login("login")
                 .birthday(LocalDate.of(1992, 12, 23))
                 .build();
-        userController = new UserController();
+        //userController = new UserController(inMemoryUserStorage);
     }
 
     @Test

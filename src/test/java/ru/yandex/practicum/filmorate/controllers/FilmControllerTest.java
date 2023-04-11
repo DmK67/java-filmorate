@@ -20,7 +20,7 @@ class FilmControllerTest {
                 .description("description")
                 .releaseDate(LocalDate.of(2018, 12, 17))
                 .duration(60).build();
-        filmController = new FilmController();
+        //filmController = new FilmController(inMemoryFilmStorage);
     }
 
     @Test
