@@ -4,11 +4,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
-import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.Film;
-import ru.yandex.practicum.filmorate.storage.InMemoryFilmStorage;
+import ru.yandex.practicum.filmorate.storage.FilmStorage;
 
-import javax.validation.Valid;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -18,26 +16,27 @@ import java.util.List;
 @Slf4j
 @Validated
 public class FilmService {
-    private final InMemoryFilmStorage inMemoryFilmStorage;
 
-    public void addLikeFilm(@Valid Long id, Long userId) { //PUT /films/{id}/like/{userId} — пользователь ставит лайк фильму.
-        Film film = inMemoryFilmStorage.getFilms().get(id);
+    private final FilmStorage filmStorage;
+    private final UserService userService;
+
+    public void addLikeFilm(Long id, Long userId) { //PUT /films/{id}/like/{userId} — пользователь ставит лайк фильму.
+        userService.getUserById(userId);
+        Film film = filmStorage.getFilmById(id);
         film.setLikes(userId);
         log.info("Пользователь по id: " + userId + " поставил Like фильму " + film);
     }
 
-    public void deleteLikeFilm(@Valid String id, String userId) { //DELETE /films/{id}/like/{userId} — пользователь удаляет лайк.
-        id = (id.replace("{", "")).replace("}", "");
-        userId = (userId.replace("{", "")).replace("}", "");
-        Film film = inMemoryFilmStorage.getFilms().get(Long.parseLong(id));
-        film.getLikes().remove(Long.parseLong(userId));
+    public void deleteLikeFilm(Long id, Long userId) { //DELETE /films/{id}/like/{userId} — пользователь удаляет лайк.
+        Film film = filmStorage.listFilms().stream().filter(a -> a.getId() == id).findFirst().get();
+        film.getLikes().remove(userId);
         log.info("Пользователь по id: " + id + " удалил Like фильму " + film);
     }
 
     //GET /films/popular?count={count} — возвращает список из первых count фильмов по количеству лайков.
     // Если значение параметра count не задано, верните первые 10.
-    public List<Film> getPopularFilms(@Valid Integer count) {
-        List<Film> sortedByLikesFilms = inMemoryFilmStorage.listFilms();
+    public List<Film> getPopularFilms(Integer count) {
+        List<Film> sortedByLikesFilms = filmStorage.listFilms();
         sortedByLikesFilms.sort(Comparator.comparingLong(o -> o.getLikes().size()));
         Collections.reverse(sortedByLikesFilms);
         if (count != 0 && sortedByLikesFilms.size() >= count) {
@@ -51,10 +50,21 @@ public class FilmService {
         }
     }
 
-    public Film getFilmById(@Valid Long id) {
-        if (!inMemoryFilmStorage.getFilms().containsKey(id)) {
-            throw new NotFoundException("Фильм с id: " + id + " не найден");
-        }
-        return inMemoryFilmStorage.getFilms().get(id);
+    public Film getFilmById(Long id) {
+        return filmStorage.getFilmById(id);
+    }
+
+    public Film addFilm(Film film) {
+        //filmStorage.addFilm(film);
+        return filmStorage.addFilm(film);
+    }
+
+    public Film updateFilm(Film film) {
+        //filmStorage.updateFilm(film);
+        return filmStorage.updateFilm(film);
+    }
+
+    public List<Film> listFilms() {
+        return filmStorage.listFilms();
     }
 }

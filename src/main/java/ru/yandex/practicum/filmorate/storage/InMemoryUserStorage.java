@@ -17,17 +17,11 @@ import java.util.Map;
 public class InMemoryUserStorage implements UserStorage {
     private Map<Long, User> users = new HashMap<>();
 
-    public Map<Long, User> getUsers() {
-        return users;
-    }
-
     private Long id = 0L;
-    private boolean resultValidUser;
 
     @Override
     public User addUser(User user) {
-        resultValidUser = validationUser(user);
-        if (resultValidUser) {
+        if (validationUser(user)) {
             user.setId(++id);
             users.put(user.getId(), user);
             log.info(user + " Пользователь успешно добавлен.");
@@ -40,8 +34,7 @@ public class InMemoryUserStorage implements UserStorage {
         if (!users.containsKey(user.getId())) {
             throw new NotFoundException(user + " Такой пользователь не зарегистрирован");
         }
-        resultValidUser = validationUser(user);
-        if (resultValidUser) {
+        if (validationUser(user)) {
             users.put(user.getId(), user);
             log.info(user + " Пользователь успешно обновлен.");
         }
@@ -53,7 +46,16 @@ public class InMemoryUserStorage implements UserStorage {
         return new ArrayList<>(users.values());
     }
 
-    public boolean validationUser(User user) {
+    @Override
+    public User getUserById(Long id) {
+        User user = users.get(id);
+        if (user == null) {
+            throw new NotFoundException("Пользователь по id: " + id + " не найден!");
+        }
+        return user;
+    }
+
+    private boolean validationUser(User user) {
         if (user.getBirthday().isAfter(LocalDate.now())) {
             log.info(user.getBirthday() + " Ошибка! Дата рождения не может быть в будущем!");
             throw new ValidationException("Дата рождения не может быть в будущем.");

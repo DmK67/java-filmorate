@@ -8,7 +8,6 @@ import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.UserService;
-import ru.yandex.practicum.filmorate.storage.InMemoryUserStorage;
 
 import javax.validation.ConstraintViolationException;
 import javax.validation.Valid;
@@ -22,21 +21,18 @@ import java.util.Set;
 @Validated
 @RequiredArgsConstructor
 public class UserController {
-    private final InMemoryUserStorage inMemoryUserStorage;
     private final UserService userService;
 
     @PostMapping
     public User addUser(@Valid @RequestBody User user) {
         log.info("Добавляем пользователя: " + user);
-        inMemoryUserStorage.addUser(user);
-        return user;
+        return userService.addUser(user);
     }
 
     @PutMapping
     public User updateUser(@Valid @RequestBody User user) {
         log.info("Обновляем пользователя: " + user);
-        inMemoryUserStorage.updateUser(user);
-        return user;
+        return userService.updateUser(user);
     }
 
     @PutMapping("/{id}/friends/{friendId}")
@@ -47,8 +43,8 @@ public class UserController {
 
     @GetMapping
     public List<User> listUsers() {
-        log.info("Получаем список пользователей, его размер: " + inMemoryUserStorage.listUsers().size());
-        return inMemoryUserStorage.listUsers();
+        log.info("Получаем список пользователей, его размер: " + userService.listUsers().size());
+        return userService.listUsers();
     }
 
     @GetMapping("/{id}")

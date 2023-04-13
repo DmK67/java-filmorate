@@ -18,16 +18,9 @@ public class InMemoryFilmStorage implements FilmStorage {
     private Map<Long, Film> films = new HashMap<>();
     private Long id = 0L;
 
-    private boolean resultValidFilm;
-
-    public Map<Long, Film> getFilms() {
-        return films;
-    }
-
     @Override
     public Film addFilm(Film film) {
-        resultValidFilm = validationFilm(film);
-        if (resultValidFilm) {
+        if (validationFilm(film)) {
             film.setId(++id);
             films.put(film.getId(), film);
             log.info(film + " Фильм успешно добавлен!");
@@ -41,8 +34,7 @@ public class InMemoryFilmStorage implements FilmStorage {
             log.info("Ошибка! Такой фильм не найден...!");
             throw new NotFoundException("Ошибка! Такой фильм не найден...");
         }
-        resultValidFilm = validationFilm(film);
-        if (resultValidFilm) {
+        if (validationFilm(film)) {
             films.put(film.getId(), film);
             log.info(film + " Фильм успешно обновлен");
         }
@@ -54,7 +46,16 @@ public class InMemoryFilmStorage implements FilmStorage {
         return new ArrayList<>(films.values());
     }
 
-    public boolean validationFilm(Film film) {
+    @Override
+    public Film getFilmById(Long id) {
+        Film film = films.get(id);
+        if (film == null) {
+            throw new NotFoundException("Пользователь по id: " + id + " не найден!");
+        }
+        return film;
+    }
+
+    private boolean validationFilm(Film film) {
         if (film.getDescription().length() > 200) {
             log.info("Ошибка! Описание фильма больше 200 символов!");
             throw new ValidationException("Максимальная длина описания фильма — 200 символов.");

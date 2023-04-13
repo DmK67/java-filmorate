@@ -8,7 +8,6 @@ import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.service.FilmService;
-import ru.yandex.practicum.filmorate.storage.InMemoryFilmStorage;
 
 import javax.validation.ConstraintViolationException;
 import javax.validation.Valid;
@@ -21,25 +20,22 @@ import java.util.List;
 @Validated
 @RequiredArgsConstructor
 public class FilmController {
-    private final InMemoryFilmStorage inMemoryFilmStorage;
     private final FilmService filmService;
 
     @PostMapping
     public Film addFilm(@Valid @RequestBody Film film) {
         log.info("Добавляем фильм " + film);
-        inMemoryFilmStorage.addFilm(film);
-        return film;
+        return filmService.addFilm(film);
     }
 
     @PutMapping
     public Film updateFilm(@Valid @RequestBody Film film) {
         log.info("Обновляем фильм " + film);
-        inMemoryFilmStorage.updateFilm(film);
-        return film;
+        return filmService.updateFilm(film);
     }
 
     @GetMapping("/{id}")
-    public Film getUserById(@PathVariable Long id) {
+    public Film getFilmById(@PathVariable Long id) {
         log.info("Получаем фильм по id: " + id);
         return filmService.getFilmById(id);
     }
@@ -52,8 +48,8 @@ public class FilmController {
 
     @GetMapping
     public List<Film> listFilms() {
-        log.info("Получаем список фильмов, их количество: " + inMemoryFilmStorage.listFilms().size());
-        return inMemoryFilmStorage.listFilms();
+        log.info("Получаем список фильмов, их количество: " + filmService.listFilms().size());
+        return filmService.listFilms();
     }
 
     @GetMapping("/popular")
@@ -63,7 +59,7 @@ public class FilmController {
     }
 
     @DeleteMapping("/{id}/like/{userId}")
-    public void deleteLikeFilm(@PathVariable String id, @PathVariable @Min(1) String userId) {
+    public void deleteLikeFilm(@PathVariable Long id, @PathVariable @Min(1) Long userId) {
         log.info("Пользователь по id: " + userId + " удаляет лайк фильму по id: " + id);
         filmService.deleteLikeFilm(id, userId);
     }
