@@ -42,4 +42,9 @@ public class User {
     private String login;
     private String name;
     private LocalDate birthday;
+    private String friendship;
+    private String friendshipTrue;
+    private String friendshipFalse;
+
+
 }
