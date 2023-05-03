@@ -1,5 +1,6 @@
 package ru.yandex.practicum.filmorate.model;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import org.springframework.validation.annotation.Validated;
@@ -15,6 +16,7 @@ import java.util.Set;
 @Data
 @Builder
 @Validated
+@AllArgsConstructor
 public class Film {
     @Min(1)
     private Long id;
@@ -27,6 +29,13 @@ public class Film {
     private int duration;
     private Mpa mpa;
     private List<Genre> genres = new ArrayList<>();
+
+    public Film() {
+    }
+
+    public void setMpa(Mpa mpa) {
+        this.mpa = mpa;
+    }
 
     public void setLikes(Long id) {
         if (likes == null) {

@@ -1,5 +1,6 @@
 package ru.yandex.practicum.filmorate.model;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import org.springframework.validation.annotation.Validated;
@@ -14,6 +15,7 @@ import java.util.Set;
 @Data
 @Builder
 @Validated
+@AllArgsConstructor
 public class User {
     @Min(1)
     private Long id;
@@ -42,9 +44,11 @@ public class User {
     private String login;
     private String name;
     private LocalDate birthday;
-    private String friendship;
-    private String friendshipTrue;
-    private String friendshipFalse;
+
+
+//    private String friendship;
+//    private String friendshipTrue;
+//    private String friendshipFalse;
 
 
 }

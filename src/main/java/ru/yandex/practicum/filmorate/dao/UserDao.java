@@ -16,4 +16,6 @@ public interface UserDao {
     List<User> listUsers();
 
     User getUserById(Long id);
+
+    void addFriendById(Long id, Long friendId);
 }

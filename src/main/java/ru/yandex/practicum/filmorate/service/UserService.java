@@ -24,19 +24,15 @@ public class UserService {
 //            this.userDao = userDao;
 //        }
 
-    //   public Optional<User> findUserById(String id) {
-    //        return userDao.findUserById(id);
-    //    }
-
-    //private final userDao userDao;
-
     public void addFriendById(Long id, Long friendId) { //PUT /users/{id}/friends/{friendId} — добавление в друзья.
-        User user1 = userDao.getUserById(id);
-        User user2 = userDao.getUserById(friendId);
-        user1.setFriends(friendId);
-        user2.setFriends(id);
-        log.info("У " + user1 + " теперь в друзьях: " + user1.getFriends());
-        log.info("У " + user2 + " теперь в друзьях: " + user2.getFriends());
+//        User user1 = userDao.getUserById(id);
+//        User user2 = userDao.getUserById(friendId);
+//        user1.setFriends(friendId);
+//        user2.setFriends(id);
+        userDao.addFriendById(id, friendId);
+
+//        log.info("У " + user1 + " теперь в друзьях: " + user1.getFriends());
+//        log.info("У " + user2 + " теперь в друзьях: " + user2.getFriends());
     }
 
     public void deleteFriendById(Long id, Long friendId) { //DELETE /users/{id}/friends/{friendId} — удаление из друзей.
