@@ -45,10 +45,4 @@ public class User {
     private String name;
     private LocalDate birthday;
 
-
-//    private String friendship;
-//    private String friendshipTrue;
-//    private String friendshipFalse;
-
-
 }

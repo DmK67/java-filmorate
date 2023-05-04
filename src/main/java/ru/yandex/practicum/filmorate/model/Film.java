@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import org.springframework.validation.annotation.Validated;
 
+import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
 import java.time.LocalDate;
@@ -24,14 +25,15 @@ public class Film {
     private Set<Long> likes;
     @NotBlank
     private String name;
+
     private String description;
     private LocalDate releaseDate;
     private int duration;
     private Mpa mpa;
-    private List<Genre> genres = new ArrayList<>();
+    private List<Genre> genres;
 
-    public Film() {
-    }
+//    public Film() {
+//    }
 
     public void setMpa(Mpa mpa) {
         this.mpa = mpa;

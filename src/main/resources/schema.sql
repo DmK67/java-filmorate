@@ -3,7 +3,6 @@ drop table IF EXISTS MPA CASCADE;
 create table IF NOT EXISTS MPA
 (
     MPA_MPA_ID INTEGER auto_increment,
-    --MPA_NAME   CHARACTER VARYING(10) not null,
     MPA_NAME   CHARACTER VARYING(10),
     constraint MPA_PK
         primary key (MPA_MPA_ID)
@@ -72,15 +71,6 @@ create table IF NOT EXISTS FILM_LIKES
         foreign key (FILM_LIKES_USER_ID_WHO_LIKE_FILM) references USERS
 );
 
-drop table IF EXISTS FRIENDSHIP_STATUS CASCADE;
-
-create table IF NOT EXISTS FRIENDSHIP_STATUS
-(
-    FRIENDSHIP_STATUS_ID INTEGER auto_increment,
-    FRIENDSHIP_STATUS    CHARACTER VARYING(50) not null,
-    constraint FRIENDSHIP_STATUS_PK
-        primary key (FRIENDSHIP_STATUS_ID)
-);
 
 drop table IF EXISTS FRIENDSHIP CASCADE;
 
@@ -88,9 +78,6 @@ create table FRIENDSHIP
 (
     FRIENDSHIP_USER_ID   INTEGER not null,
     FRIENDSHIP_FRIEND_ID INTEGER not null,
-    FRIENDSHIP_STATUS    INTEGER not null,
-    constraint FRIENDSHIP_FRIENDSHIP_STATUS_FRIENDSHIP_STATUS_ID_FK
-        foreign key (FRIENDSHIP_STATUS) references FRIENDSHIP_STATUS,
     constraint FRIENDSHIP_USERS_USER_ID_FK
         foreign key (FRIENDSHIP_USER_ID) references USERS,
     constraint FRIENDSHIP_USERS_USER_ID_FK_2

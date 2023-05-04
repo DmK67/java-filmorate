@@ -2,20 +2,23 @@ package ru.yandex.practicum.filmorate.dao;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
+import org.springframework.jdbc.core.namedparam.SqlParameterSourceUtils;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
-import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.User;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static java.sql.Statement.RETURN_GENERATED_KEYS;
 
@@ -82,13 +85,28 @@ public class UserDbStorage implements UserDao {
 
     @Override
     public void addFriendById(Long id, Long friendId) {
-        String sqlQueryInsert = "insert into FRIENDSHIP(FRIENDSHIP_USER_ID, FRIENDSHIP_FRIEND_ID, FRIENDSHIP_STATUS" +
-                " values (?, ?, 1)";
+        String sqlQueryInsert = "insert into FRIENDSHIP(FRIENDSHIP_USER_ID, FRIENDSHIP_FRIEND_ID)" +
+                " values (?, ?)";
         User user1 = getUserById(id);
         User user2 = getUserById(friendId);
-        jdbcTemplate.update(sqlQueryInsert
-                , user1.getId()
-                , user2.getId());
+        if (!checkFriendshipExits(id, friendId)) {
+            jdbcTemplate.update(sqlQueryInsert
+                    , user1.getId()
+                    , user2.getId());
+            log.info("Пользователь " + user1 + " дружит с пользователем " + user2);
+        }
+    }
+
+    public boolean checkFriendshipExits(Long id, Long friendId) {
+        //SELECT EXISTS (SELECT * FROM FRIENDSHIP AS tols_user WHERE FRIENDSHIP_USER_ID='2' AND EXISTS (SELECT * FROM FRIENDSHIP WHERE FRIENDSHIP_FRIEND_ID='1'));
+        String sqlQuery = "SELECT EXISTS(select * from FRIENDSHIP AS tols_user where FRIENDSHIP_USER_ID = ?" +
+                " AND EXISTS (SELECT * FROM FRIENDSHIP WHERE FRIENDSHIP_FRIEND_ID= ?))";
+        boolean exists = false;
+        exists = jdbcTemplate.queryForObject(sqlQuery, new Long[]{id, friendId}, Boolean.class);
+        if (exists) {
+            return exists;
+        }
+        return exists;
     }
 
     public void checkReportExistsUser(Long id) {
@@ -98,6 +116,44 @@ public class UserDbStorage implements UserDao {
         if (exists == false) {
             throw new NotFoundException("Пользователь по id: " + id + " не найден!");
         }
+    }
+
+    @Override
+    public List<User> getListFriends(Long id) {
+        List<User> listUser = new ArrayList<>();
+        String sqlQueryFriends = "select FRIENDSHIP_FRIEND_ID from FRIENDSHIP where FRIENDSHIP_USER_ID = ?";
+        List<Long> listIdFriends = jdbcTemplate.queryForList(sqlQueryFriends, new Long[]{id}, Long.class);
+        for (Long listIdFriend : listIdFriends) {
+            listUser.add(getUserById(listIdFriend));
+        }
+        return listUser;
+    }
+
+    @Override
+    public List<User> getCommonFriends(Long id, Long otherId) {
+        List<User> listUser = new ArrayList<>();
+        String sqlQueryFriendsUser1 = "select FRIENDSHIP_FRIEND_ID from FRIENDSHIP where FRIENDSHIP_USER_ID = ?";
+        String sqlQueryFriendsUser2 = "select FRIENDSHIP_FRIEND_ID from FRIENDSHIP where FRIENDSHIP_USER_ID = ?";
+        List<Long> listIdFriendsUser1 = jdbcTemplate.queryForList(sqlQueryFriendsUser1, new Long[]{id}, Long.class);
+        List<Long> listIdFriendsUser2 = jdbcTemplate.queryForList(sqlQueryFriendsUser2, new Long[]{otherId}, Long.class);
+
+        List<Long> intersectList = listIdFriendsUser1.stream()
+                .filter(listIdFriendsUser2::contains)
+                .collect(Collectors.toList());
+
+        for (Long idUser : intersectList) {
+            listUser.add(getUserById(idUser));
+        }
+        return listUser;
+    }
+
+    @Override
+    public void removeFriendById(Long id, Long friendId) {
+        final String sqlQuery = "delete from FRIENDSHIP" +
+                " where FRIENDSHIP_USER_ID = ? and FRIENDSHIP_FRIEND_ID = ?";
+        jdbcTemplate.update(sqlQuery
+                , id
+                , friendId);
     }
 
     private User mapRowToUser(ResultSet resultSet, int rowNum) throws SQLException {

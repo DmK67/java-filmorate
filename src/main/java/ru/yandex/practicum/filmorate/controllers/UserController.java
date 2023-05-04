@@ -54,13 +54,13 @@ public class UserController {
     }
 
     @GetMapping("/{id}/friends")
-    public Set<User> getListFriends(@PathVariable Long id) {
+    public List<User> getListFriends(@PathVariable Long id) {
         log.info("Получаем список друзей пользователя по id: " + id);
         return userService.getListFriends(id);
     }
 
     @GetMapping("{id}/friends/common/{otherId}")
-    public Set<User> getListFriendsSharedWithAnotherUser(@PathVariable Long id, @PathVariable Long otherId) {
+    public List<User> getListFriendsSharedWithAnotherUser(@PathVariable Long id, @PathVariable Long otherId) {
         log.info("Получаем список друзей пользователя по id: " + id + " общих с другим пользователем по id: " + otherId);
         return userService.getListFriendsSharedWithAnotherUser(id, otherId);
     }

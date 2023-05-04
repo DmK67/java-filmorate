@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.model.Mpa;
 
 import java.sql.PreparedStatement;
@@ -16,6 +17,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import static java.sql.Statement.RETURN_GENERATED_KEYS;
@@ -37,7 +39,7 @@ public class FilmDbStorage implements FilmDao {
         String sqlQueryInsert = "insert into FILMS(FILM_NAME, FILM_DESCRIPTION, FILM_RELEASE_DATE, FILM_DURATION, FILM_MPA)" +
                 " values (?, ?, ?, ?, ?)";
         Long id = writingToTable(validFilm, sqlQueryInsert);
-        log.info(validFilm + " Фильм успешно добавлен!");
+        log.info(getFilmById(id) + " Фильм успешно добавлен!");
         return getFilmById(id);
     }
 
@@ -54,6 +56,15 @@ public class FilmDbStorage implements FilmDao {
                 ps.setLong(5, film.getMpa().getId());
                 return ps;
             }, keyHolder);
+            if (film.getGenres().size() > 0) {
+                for (Genre genreId : film.getGenres()) {
+                    String sqlQueryFilmGenres = "insert into FILM_GENRES(FILM_GENRES_ID, FILM_GENRES_FILM_ID)" +
+                            " values (?, ?)";
+                    jdbcTemplate.update(sqlQueryFilmGenres
+                            , Long.parseLong(keyHolder.getKey().toString())
+                            , genreId.getId());
+                }
+            }
             return Long.parseLong(keyHolder.getKey().toString());
         } else {
             jdbcTemplate.update(query
@@ -64,11 +75,24 @@ public class FilmDbStorage implements FilmDao {
                     , film.getMpa().getId()
                     , film.getId());
             film.setMpa(getMpaById(film.getMpa().getId()));
+            if (film.getGenres().size() > 0) {
+                for (Genre genreId : film.getGenres()) {
+                    String sqlQueryFilmGenres = "insert into FILM_GENRES(FILM_GENRES_ID, FILM_GENRES_FILM_ID)" +
+                            " values (?, ?)";
+                    jdbcTemplate.update(sqlQueryFilmGenres
+                            , film.getId()
+                            , genreId.getId());
+                }
+            }
             return Long.parseLong(film.getId().toString());
         }
     }
 
     private Film validationFilm(Film film) {
+        if (film.getDescription().length() > 200) {
+            log.info("Ошибка! Описание фильма больше 200 символов!");
+            throw new ValidationException("Максимальная длина описания фильма — 200 символов.");
+        }
         if (film.getReleaseDate().isBefore(LocalDate.of(1895, 12, 28))) {
             log.info("Ошибка! Дата релиза — не может быть раньше 28.12.1895 г.!");
             throw new ValidationException("Дата релиза — не может быть раньше 28.12.1895 г.");
@@ -116,11 +140,27 @@ public class FilmDbStorage implements FilmDao {
                 .build();
     }
 
+    private Genre mapRowToFilmGenres(ResultSet resultSet, int rowNum) throws SQLException {
+        return Genre.builder()
+                .id((long) resultSet.getInt("FILM_GENRES_FILM_ID"))
+                .build();
+    }
+
+    private String mapRowToGenresName(ResultSet resultSet, int rowNum) throws SQLException {
+        return resultSet.getString("GENRES_NAME");
+    }
+
     public Mpa getMpaById(int id) {
         String sqlQuery = "select * from MPA where MPA_MPA_ID =?";
         Mpa mpa = jdbcTemplate.queryForObject(sqlQuery, this::mapRowToMPA, id);
         return mpa;
     }
+
+//    public Genre getGenreById(int id) {
+//        String sqlQuery = "select * from GENRES where GENRES_GENRES_ID =?";
+//        Genre genre = jdbcTemplate.queryForObject(sqlQuery, this::mapRowToGenres, id);
+//        return genre;
+//    }
 
     private Film mapRowToFilm(ResultSet resultSet, int rowNum) throws SQLException {
         Film film = Film.builder()
@@ -130,9 +170,17 @@ public class FilmDbStorage implements FilmDao {
                 .releaseDate(resultSet.getDate("FILM_RELEASE_DATE").toLocalDate())
                 .duration(resultSet.getInt("FILM_DURATION"))
                 .mpa(getMpaById((int) resultSet.getInt("FILM_MPA")))
+                .genres(new ArrayList<>())
                 .build();
-        if (film.getGenres() == null) {
-            film.setGenres(new ArrayList<>());
+        if (film.getGenres().size()>0) {
+            String sqlQueryIdGenre = "select FILM_GENRES_FILM_ID from FILM_GENRES where FILM_GENRES_ID =?";
+            Long IdGenre = jdbcTemplate.queryForObject(sqlQueryIdGenre, this::mapRowToFilmGenres, film.getId()).getId();
+            String sqlQueryNameGenre = "select GENRES_NAME from GENRES where GENRES_GENRES_ID =?";
+            String nameGenre = String.valueOf(jdbcTemplate.queryForObject(sqlQueryNameGenre, this::mapRowToGenresName, IdGenre));
+            Genre genre = new Genre(IdGenre, nameGenre);
+            List<Genre> filmGenres = new ArrayList<>();
+            filmGenres.add(genre);
+            film.setGenres(filmGenres);
         }
         return film;
     }

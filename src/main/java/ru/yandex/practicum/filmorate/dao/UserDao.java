@@ -2,12 +2,11 @@ package ru.yandex.practicum.filmorate.dao;
 
 import ru.yandex.practicum.filmorate.model.User;
 
+import java.sql.SQLException;
 import java.util.List;
-import java.util.Optional;
+import java.util.Set;
 
 public interface UserDao {
-
-    //Optional<User> findUserById(String id);
 
     User addUser(User user);
 
@@ -18,4 +17,10 @@ public interface UserDao {
     User getUserById(Long id);
 
     void addFriendById(Long id, Long friendId);
+
+    List<User> getListFriends(Long id);
+
+    List<User> getCommonFriends(Long id, Long otherId);
+
+    void removeFriendById(Long id, Long friendId);
 }
