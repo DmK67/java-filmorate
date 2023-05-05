@@ -9,7 +9,6 @@ import javax.validation.constraints.Email;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
 import java.time.LocalDate;
-import java.util.HashSet;
 import java.util.Set;
 
 @Data
@@ -20,22 +19,6 @@ public class User {
     @Min(1)
     private Long id;
     private Set<Long> friends;
-
-    public void setFriends(Long id) {
-        if (friends == null) {
-            friends = new HashSet<Long>();
-            friends.add(id);
-        } else {
-            friends.add(id);
-        }
-    }
-
-    public Set<Long> getFriends() {
-        if (friends == null) {
-            friends = new HashSet<Long>();
-        }
-        return friends;
-    }
 
     @NotBlank
     @Email

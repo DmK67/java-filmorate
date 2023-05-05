@@ -32,9 +32,6 @@ public class Film {
     private Mpa mpa;
     private List<Genre> genres;
 
-//    public Film() {
-//    }
-
     public void setMpa(Mpa mpa) {
         this.mpa = mpa;
     }

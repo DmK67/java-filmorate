@@ -2,10 +2,6 @@ package ru.yandex.practicum.filmorate.dao;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowMapper;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.jdbc.core.namedparam.SqlParameterSource;
-import org.springframework.jdbc.core.namedparam.SqlParameterSourceUtils;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Component;
@@ -14,7 +10,9 @@ import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
 
-import java.sql.*;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -98,7 +96,6 @@ public class UserDbStorage implements UserDao {
     }
 
     public boolean checkFriendshipExits(Long id, Long friendId) {
-        //SELECT EXISTS (SELECT * FROM FRIENDSHIP AS tols_user WHERE FRIENDSHIP_USER_ID='2' AND EXISTS (SELECT * FROM FRIENDSHIP WHERE FRIENDSHIP_FRIEND_ID='1'));
         String sqlQuery = "SELECT EXISTS(select * from FRIENDSHIP AS tols_user where FRIENDSHIP_USER_ID = ?" +
                 " AND EXISTS (SELECT * FROM FRIENDSHIP WHERE FRIENDSHIP_FRIEND_ID= ?))";
         boolean exists = false;
@@ -110,7 +107,8 @@ public class UserDbStorage implements UserDao {
     }
 
     public void checkReportExistsUser(Long id) {
-        String sqlQuery = "SELECT EXISTS(select USER_ID, USER_EMAIL, USER_LOGIN, USER_NAME, USER_BIRTHDAY from USERS where USER_ID = ?)";
+        //final String sqlQuery = "SELECT EXISTS(select USER_ID, USER_EMAIL, USER_LOGIN, USER_NAME, USER_BIRTHDAY from USERS where USER_ID = ?)";
+       final String sqlQuery = "SELECT EXISTS(select * from USERS where USER_ID = ?)";
         boolean exists = false;
         exists = jdbcTemplate.queryForObject(sqlQuery, new Long[]{id}, Boolean.class);
         if (exists == false) {
@@ -136,11 +134,9 @@ public class UserDbStorage implements UserDao {
         String sqlQueryFriendsUser2 = "select FRIENDSHIP_FRIEND_ID from FRIENDSHIP where FRIENDSHIP_USER_ID = ?";
         List<Long> listIdFriendsUser1 = jdbcTemplate.queryForList(sqlQueryFriendsUser1, new Long[]{id}, Long.class);
         List<Long> listIdFriendsUser2 = jdbcTemplate.queryForList(sqlQueryFriendsUser2, new Long[]{otherId}, Long.class);
-
         List<Long> intersectList = listIdFriendsUser1.stream()
                 .filter(listIdFriendsUser2::contains)
                 .collect(Collectors.toList());
-
         for (Long idUser : intersectList) {
             listUser.add(getUserById(idUser));
         }

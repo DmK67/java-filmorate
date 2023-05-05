@@ -10,15 +10,15 @@ import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
-import ru.yandex.practicum.filmorate.model.Mpa;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import static java.sql.Statement.RETURN_GENERATED_KEYS;
 
@@ -27,16 +27,22 @@ import static java.sql.Statement.RETURN_GENERATED_KEYS;
 @Slf4j
 public class FilmDbStorage implements FilmDao {
 
+    private final MpaDao mpaDao;
+
+    private final GenreDao genreDao;
+
     private final JdbcTemplate jdbcTemplate;
 
-    public FilmDbStorage(JdbcTemplate jdbcTemplate) {
+    public FilmDbStorage(MpaDao mpaDao, GenreDao genreDao, JdbcTemplate jdbcTemplate) {
+        this.mpaDao = mpaDao;
+        this.genreDao = genreDao;
         this.jdbcTemplate = jdbcTemplate;
     }
 
     @Override
     public Film addFilm(Film film) {
         Film validFilm = validationFilm(film);
-        String sqlQueryInsert = "insert into FILMS(FILM_NAME, FILM_DESCRIPTION, FILM_RELEASE_DATE, FILM_DURATION, FILM_MPA)" +
+        final String sqlQueryInsert = "insert into FILMS(FILM_NAME, FILM_DESCRIPTION, FILM_RELEASE_DATE, FILM_DURATION, FILM_MPA)" +
                 " values (?, ?, ?, ?, ?)";
         Long id = writingToTable(validFilm, sqlQueryInsert);
         log.info(getFilmById(id) + " Фильм успешно добавлен!");
@@ -58,7 +64,7 @@ public class FilmDbStorage implements FilmDao {
             }, keyHolder);
             if (film.getGenres().size() > 0) {
                 for (Genre genreId : film.getGenres()) {
-                    String sqlQueryFilmGenres = "insert into FILM_GENRES(FILM_GENRES_ID, FILM_GENRES_FILM_ID)" +
+                    final String sqlQueryFilmGenres = "insert into FILM_GENRES(FILM_GENRES_ID, FILM_GENRES_FILM_ID)" +
                             " values (?, ?)";
                     jdbcTemplate.update(sqlQueryFilmGenres
                             , Long.parseLong(keyHolder.getKey().toString())
@@ -74,14 +80,42 @@ public class FilmDbStorage implements FilmDao {
                     , film.getDuration()
                     , film.getMpa().getId()
                     , film.getId());
-            film.setMpa(getMpaById(film.getMpa().getId()));
+            film.setMpa(mpaDao.getMpaById(film.getMpa().getId()));
             if (film.getGenres().size() > 0) {
+                final String sqlQueryListGenges = "select FILM_GENRES_FILM_ID FILM_GENRES from FILM_GENRES" +
+                        " where FILM_GENRES_ID = ?";
+                List<Long> listIdGenres = jdbcTemplate.queryForList(sqlQueryListGenges
+                        , new Long[]{Long.parseLong(film.getId().toString())}, Long.class);
+
+                for (Long idGenre : listIdGenres) {
+                    final String sqlQueryGenreDeleteById = "delete from FILM_GENRES where FILM_GENRES_ID = ?" +
+                            " and FILM_GENRES_FILM_ID = ?";
+                    jdbcTemplate.update(sqlQueryGenreDeleteById
+                            , Long.parseLong(film.getId().toString())
+                            , idGenre);
+                }
+                Set<Long> myList = new HashSet<Long>();
                 for (Genre genreId : film.getGenres()) {
-                    String sqlQueryFilmGenres = "insert into FILM_GENRES(FILM_GENRES_ID, FILM_GENRES_FILM_ID)" +
-                            " values (?, ?)";
+                    myList.add((long) genreId.getId());
+                }
+                final String sqlQueryFilmGenres = "insert into FILM_GENRES(FILM_GENRES_ID, FILM_GENRES_FILM_ID)" +
+                        " values (?, ?)";
+                for (Long aLong : myList) {
                     jdbcTemplate.update(sqlQueryFilmGenres
                             , film.getId()
-                            , genreId.getId());
+                            , aLong);
+                }
+            } else {
+                final String sqlQueryListGenges = "select FILM_GENRES_FILM_ID FILM_GENRES from FILM_GENRES" +
+                        " where FILM_GENRES_ID = ?";
+                List<Long> listIdGenres = jdbcTemplate.queryForList(sqlQueryListGenges
+                        , new Long[]{Long.parseLong(film.getId().toString())}, Long.class);
+                for (Long idGenre : listIdGenres) {
+                    final String sqlQueryGenreDeleteById = "delete from FILM_GENRES where FILM_GENRES_ID = ?" +
+                            " and FILM_GENRES_FILM_ID = ?";
+                    jdbcTemplate.update(sqlQueryGenreDeleteById
+                            , Long.parseLong(film.getId().toString())
+                            , idGenre);
                 }
             }
             return Long.parseLong(film.getId().toString());
@@ -120,47 +154,26 @@ public class FilmDbStorage implements FilmDao {
     public Film updateFilm(Film film) {
         getFilmById(film.getId());
         Film validFilm = validationFilm(film);
-        String sqlQuery = "update FILMS set FILM_NAME = ?, FILM_DESCRIPTION = ?, FILM_RELEASE_DATE = ?," +
+        final String sqlQuery = "update FILMS set FILM_NAME = ?, FILM_DESCRIPTION = ?, FILM_RELEASE_DATE = ?," +
                 " FILM_DURATION = ?, FILM_MPA = ? where FILM_ID = ?";
-        writingToTable(validFilm, sqlQuery);
+        Long id = writingToTable(validFilm, sqlQuery);
+        film = getFilmById(id);
         log.info(validFilm + " Фильм успешно обновлен");
-        return validFilm;
+        return film;
     }
 
     @Override
     public List<Film> listFilms() {
-        String sqlQuery = "select FILM_ID, FILM_NAME, FILM_DESCRIPTION, FILM_RELEASE_DATE, FILM_DURATION, FILM_MPA from FILMS";
+        final String sqlQuery = "select FILM_ID, FILM_NAME, FILM_DESCRIPTION, FILM_RELEASE_DATE, FILM_DURATION, FILM_MPA from FILMS";
         return jdbcTemplate.query(sqlQuery, this::mapRowToFilm);
     }
 
-    private Mpa mapRowToMPA(ResultSet resultSet, int rowNum) throws SQLException {
-        return Mpa.builder()
-                .id(resultSet.getInt("MPA_MPA_ID"))
-                .name(resultSet.getString("MPA_NAME"))
-                .build();
-    }
-
-    private Genre mapRowToFilmGenres(ResultSet resultSet, int rowNum) throws SQLException {
+    private Genre mapRowToGenres(ResultSet resultSet, int rowNum) throws SQLException {
         return Genre.builder()
-                .id((long) resultSet.getInt("FILM_GENRES_FILM_ID"))
+                .id(resultSet.getInt("GENRES_GENRES_ID"))
+                .name(resultSet.getString("GENRES_NAME"))
                 .build();
     }
-
-    private String mapRowToGenresName(ResultSet resultSet, int rowNum) throws SQLException {
-        return resultSet.getString("GENRES_NAME");
-    }
-
-    public Mpa getMpaById(int id) {
-        String sqlQuery = "select * from MPA where MPA_MPA_ID =?";
-        Mpa mpa = jdbcTemplate.queryForObject(sqlQuery, this::mapRowToMPA, id);
-        return mpa;
-    }
-
-//    public Genre getGenreById(int id) {
-//        String sqlQuery = "select * from GENRES where GENRES_GENRES_ID =?";
-//        Genre genre = jdbcTemplate.queryForObject(sqlQuery, this::mapRowToGenres, id);
-//        return genre;
-//    }
 
     private Film mapRowToFilm(ResultSet resultSet, int rowNum) throws SQLException {
         Film film = Film.builder()
@@ -169,33 +182,27 @@ public class FilmDbStorage implements FilmDao {
                 .description(resultSet.getString("FILM_DESCRIPTION"))
                 .releaseDate(resultSet.getDate("FILM_RELEASE_DATE").toLocalDate())
                 .duration(resultSet.getInt("FILM_DURATION"))
-                .mpa(getMpaById((int) resultSet.getInt("FILM_MPA")))
+                .mpa(mpaDao.getMpaById((int) resultSet.getInt("FILM_MPA")))
                 .genres(new ArrayList<>())
                 .build();
-        if (film.getGenres().size()>0) {
-            String sqlQueryIdGenre = "select FILM_GENRES_FILM_ID from FILM_GENRES where FILM_GENRES_ID =?";
-            Long IdGenre = jdbcTemplate.queryForObject(sqlQueryIdGenre, this::mapRowToFilmGenres, film.getId()).getId();
-            String sqlQueryNameGenre = "select GENRES_NAME from GENRES where GENRES_GENRES_ID =?";
-            String nameGenre = String.valueOf(jdbcTemplate.queryForObject(sqlQueryNameGenre, this::mapRowToGenresName, IdGenre));
-            Genre genre = new Genre(IdGenre, nameGenre);
-            List<Genre> filmGenres = new ArrayList<>();
-            filmGenres.add(genre);
-            film.setGenres(filmGenres);
+        if (genreDao.checkReportExitsGenres(film.getId())) {
+            List<Genre> listGenresFilm = genreDao.getListGenres(film.getId());
+            film.setGenres(listGenresFilm);
         }
         return film;
     }
 
     @Override
     public Film getFilmById(Long id) {
-        checkReportExists(id);
-        String sqlQuery = "select FILM_ID, FILM_NAME, FILM_DESCRIPTION, FILM_RELEASE_DATE, FILM_DURATION, FILM_MPA" +
+        checkReportExistsFilm(id);
+        final String sqlQuery = "select FILM_ID, FILM_NAME, FILM_DESCRIPTION, FILM_RELEASE_DATE, FILM_DURATION, FILM_MPA" +
                 " from FILMS where FILM_ID = ?";
         Film film = jdbcTemplate.queryForObject(sqlQuery, this::mapRowToFilm, id);
         return film;
     }
 
-    public void checkReportExists(Long id) {
-        String sqlQuery = "SELECT EXISTS(select FILM_ID, FILM_NAME, FILM_DESCRIPTION, FILM_RELEASE_DATE" +
+    private void checkReportExistsFilm(Long id) {
+        final String sqlQuery = "SELECT EXISTS(select FILM_ID, FILM_NAME, FILM_DESCRIPTION, FILM_RELEASE_DATE" +
                 ", FILM_DURATION, FILM_MPA from FILMS where FILM_ID = ?)";
         boolean exists = false;
         exists = jdbcTemplate.queryForObject(sqlQuery, new Long[]{id}, Boolean.class);
@@ -204,4 +211,21 @@ public class FilmDbStorage implements FilmDao {
         }
     }
 
+    @Override
+    public void addLikeFilmToUser(Long id, Long userId) {
+        final String sqlQueryInsertLike = "insert into FILM_LIKES(FILMS_LIKES_ID, FILM_LIKES_USER_ID_WHO_LIKE_FILM)" +
+                " values (?, ?)";
+        jdbcTemplate.update(sqlQueryInsertLike
+                , id
+                , userId);
+    }
+
+    @Override
+    public void deleteLikeFilmToUser(Long id, Long userId) {
+        final String sqlQuery = "delete from FILM_LIKES" +
+                " where FILMS_LIKES_ID = ? and FILM_LIKES_USER_ID_WHO_LIKE_FILM = ?";
+        jdbcTemplate.update(sqlQuery
+                , id
+                , userId);
+    }
 }

@@ -7,11 +7,7 @@ import org.springframework.validation.annotation.Validated;
 import ru.yandex.practicum.filmorate.dao.UserDao;
 import ru.yandex.practicum.filmorate.model.User;
 
-import java.sql.SQLException;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -21,22 +17,12 @@ public class UserService {
 
     private final UserDao userDao;
 
-//        public UserService(UserDao userDao) {
-//            this.userDao = userDao;
-//        }
-
     public void addFriendById(Long id, Long friendId) { //PUT /users/{id}/friends/{friendId} — добавление в друзья.
         userDao.addFriendById(id, friendId);
         log.info(userDao.getUserById(id) + " теперь дружит с " + userDao.getUserById(friendId));
     }
 
     public void deleteFriendById(Long id, Long friendId) { //DELETE /users/{id}/friends/{friendId} — удаление из друзей.
-        //        User user1 = userDao.listUsers().stream().filter(a -> a.getId() == id).findFirst().get();
-//        user1.getFriends().remove(friendId);
-//        log.info("У " + user1 + " теперь в друзьях остались: " + user1.getFriends());
-//        User user2 = userDao.listUsers().stream().filter(a -> a.getId() == friendId).findFirst().get();
-//        user2.getFriends().remove(id);
-//        log.info("У " + user2 + " теперь в друзьях остались: " + user2.getFriends());
         userDao.removeFriendById(id, friendId);
     }
 

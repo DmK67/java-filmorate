@@ -15,7 +15,7 @@ import javax.validation.constraints.Min;
 import java.util.List;
 
 @RestController
-@RequestMapping("/films")
+@RequestMapping({"/films"})
 @Slf4j
 @Validated
 @RequiredArgsConstructor

@@ -3,7 +3,6 @@ package ru.yandex.practicum.filmorate.dao;
 import ru.yandex.practicum.filmorate.model.Film;
 
 import java.util.List;
-import java.util.Optional;
 
 public interface FilmDao {
 
@@ -14,4 +13,9 @@ public interface FilmDao {
     List<Film> listFilms();
 
     Film getFilmById(Long id);
+
+    void addLikeFilmToUser(Long id, Long userId);
+
+    void deleteLikeFilmToUser(Long id, Long userId);
+
 }

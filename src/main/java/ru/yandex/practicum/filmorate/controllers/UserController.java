@@ -13,7 +13,6 @@ import javax.validation.ConstraintViolationException;
 import javax.validation.Valid;
 import javax.validation.constraints.Min;
 import java.util.List;
-import java.util.Set;
 
 @RestController
 @RequestMapping("/users")
