@@ -132,8 +132,8 @@ public class FilmDbStorage implements FilmDao {
             if (film.getGenres().size() > 0) {
                 final String sqlQueryListGenges = "select FILM_GENRES_FILM_ID FILM_GENRES from FILM_GENRES" +
                         " where FILM_GENRES_ID = ?";
-                List<Long> listIdGenres = jdbcTemplate.queryForList(sqlQueryListGenges
-                        , new Long[]{Long.parseLong(film.getId().toString())}, Long.class);
+                List<Long> listIdGenres = jdbcTemplate.queryForList(sqlQueryListGenges,
+                        new Long[]{Long.parseLong(film.getId().toString())}, Long.class);
 
                 for (Long idGenre : listIdGenres) {
                     final String sqlQueryGenreDeleteById = "delete from FILM_GENRES where FILM_GENRES_ID = ?" +
@@ -152,8 +152,8 @@ public class FilmDbStorage implements FilmDao {
             } else {
                 final String sqlQueryListGenges = "select FILM_GENRES_FILM_ID FILM_GENRES from FILM_GENRES" +
                         " where FILM_GENRES_ID = ?";
-                List<Long> listIdGenres = jdbcTemplate.queryForList(sqlQueryListGenges
-                        , new Long[]{Long.parseLong(film.getId().toString())}, Long.class);
+                List<Long> listIdGenres = jdbcTemplate.queryForList(sqlQueryListGenges,
+                        new Long[]{Long.parseLong(film.getId().toString())}, Long.class);
                 for (Long idGenre : listIdGenres) {
                     final String sqlQueryGenreDeleteById = "delete from FILM_GENRES where FILM_GENRES_ID = ?" +
                             " and FILM_GENRES_FILM_ID = ?";
