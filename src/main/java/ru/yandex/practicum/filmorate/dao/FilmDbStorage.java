@@ -93,18 +93,14 @@ public class FilmDbStorage implements FilmDao {
     public void addLikeFilmToUser(Long id, Long userId) {
         final String sqlQueryInsertLike = "insert into FILM_LIKES(FILMS_LIKES_ID, FILM_LIKES_USER_ID_WHO_LIKE_FILM)" +
                 " values (?, ?)";
-        jdbcTemplate.update(sqlQueryInsertLike
-                , id
-                , userId);
+        jdbcTemplate.update(sqlQueryInsertLike, id, userId);
     }
 
     @Override
     public void deleteLikeFilmToUser(Long id, Long userId) {
         final String sqlQuery = "delete from FILM_LIKES" +
                 " where FILMS_LIKES_ID = ? and FILM_LIKES_USER_ID_WHO_LIKE_FILM = ?";
-        jdbcTemplate.update(sqlQuery
-                , id
-                , userId);
+        jdbcTemplate.update(sqlQuery, id, userId);
     }
 
     private Long writingToTable(Film film, String query) {
@@ -124,20 +120,14 @@ public class FilmDbStorage implements FilmDao {
                 for (Genre genreId : film.getGenres()) {
                     final String sqlQueryFilmGenres = "insert into FILM_GENRES(FILM_GENRES_ID, FILM_GENRES_FILM_ID)" +
                             " values (?, ?)";
-                    jdbcTemplate.update(sqlQueryFilmGenres
-                            , Long.parseLong(keyHolder.getKey().toString())
-                            , genreId.getId());
+                    jdbcTemplate.update(sqlQueryFilmGenres, Long.parseLong(keyHolder.getKey().toString()),
+                            genreId.getId());
                 }
             }
             return Long.parseLong(keyHolder.getKey().toString());
         } else {
-            jdbcTemplate.update(query
-                    , film.getName()
-                    , film.getDescription()
-                    , film.getReleaseDate()
-                    , film.getDuration()
-                    , film.getMpa().getId()
-                    , film.getId());
+            jdbcTemplate.update(query, film.getName(), film.getDescription(), film.getReleaseDate(),
+                    film.getDuration(), film.getMpa().getId(), film.getId());
             film.setMpa(mpaDao.getMpaById(film.getMpa().getId()));
             if (film.getGenres().size() > 0) {
                 final String sqlQueryListGenges = "select FILM_GENRES_FILM_ID FILM_GENRES from FILM_GENRES" +
@@ -148,9 +138,7 @@ public class FilmDbStorage implements FilmDao {
                 for (Long idGenre : listIdGenres) {
                     final String sqlQueryGenreDeleteById = "delete from FILM_GENRES where FILM_GENRES_ID = ?" +
                             " and FILM_GENRES_FILM_ID = ?";
-                    jdbcTemplate.update(sqlQueryGenreDeleteById
-                            , Long.parseLong(film.getId().toString())
-                            , idGenre);
+                    jdbcTemplate.update(sqlQueryGenreDeleteById, Long.parseLong(film.getId().toString()), idGenre);
                 }
                 Set<Long> myList = new HashSet<Long>();
                 for (Genre genreId : film.getGenres()) {
@@ -159,9 +147,7 @@ public class FilmDbStorage implements FilmDao {
                 final String sqlQueryFilmGenres = "insert into FILM_GENRES(FILM_GENRES_ID, FILM_GENRES_FILM_ID)" +
                         " values (?, ?)";
                 for (Long aLong : myList) {
-                    jdbcTemplate.update(sqlQueryFilmGenres
-                            , film.getId()
-                            , aLong);
+                    jdbcTemplate.update(sqlQueryFilmGenres, film.getId(), aLong);
                 }
             } else {
                 final String sqlQueryListGenges = "select FILM_GENRES_FILM_ID FILM_GENRES from FILM_GENRES" +
@@ -171,9 +157,7 @@ public class FilmDbStorage implements FilmDao {
                 for (Long idGenre : listIdGenres) {
                     final String sqlQueryGenreDeleteById = "delete from FILM_GENRES where FILM_GENRES_ID = ?" +
                             " and FILM_GENRES_FILM_ID = ?";
-                    jdbcTemplate.update(sqlQueryGenreDeleteById
-                            , Long.parseLong(film.getId().toString())
-                            , idGenre);
+                    jdbcTemplate.update(sqlQueryGenreDeleteById, Long.parseLong(film.getId().toString()), idGenre);
                 }
             }
             return Long.parseLong(film.getId().toString());

@@ -74,9 +74,7 @@ public class UserDbStorage implements UserDao {
         User user1 = getUserById(id);
         User user2 = getUserById(friendId);
         if (!checkFriendshipExits(id, friendId)) {
-            jdbcTemplate.update(sqlQueryInsert
-                    , user1.getId()
-                    , user2.getId());
+            jdbcTemplate.update(sqlQueryInsert, user1.getId(), user2.getId());
             log.info("Пользователь " + user1 + " дружит с пользователем " + user2);
         }
     }
@@ -98,8 +96,8 @@ public class UserDbStorage implements UserDao {
         String sqlQueryFriendsUser1 = "select FRIENDSHIP_FRIEND_ID from FRIENDSHIP where FRIENDSHIP_USER_ID = ?";
         String sqlQueryFriendsUser2 = "select FRIENDSHIP_FRIEND_ID from FRIENDSHIP where FRIENDSHIP_USER_ID = ?";
         List<Long> listIdFriendsUser1 = jdbcTemplate.queryForList(sqlQueryFriendsUser1, new Long[]{id}, Long.class);
-        List<Long> listIdFriendsUser2 = jdbcTemplate.queryForList(sqlQueryFriendsUser2, new Long[]{otherId}
-                , Long.class);
+        List<Long> listIdFriendsUser2 = jdbcTemplate.queryForList(sqlQueryFriendsUser2, new Long[]{otherId},
+                Long.class);
         List<Long> intersectList = listIdFriendsUser1.stream()
                 .filter(listIdFriendsUser2::contains)
                 .collect(Collectors.toList());
@@ -113,9 +111,7 @@ public class UserDbStorage implements UserDao {
     public void removeFriendById(Long id, Long friendId) {
         final String sqlQuery = "delete from FRIENDSHIP" +
                 " where FRIENDSHIP_USER_ID = ? and FRIENDSHIP_FRIEND_ID = ?";
-        jdbcTemplate.update(sqlQuery
-                , id
-                , friendId);
+        jdbcTemplate.update(sqlQuery, id, friendId);
     }
 
     private User mapRowToUser(ResultSet resultSet, int rowNum) throws SQLException {
@@ -143,12 +139,8 @@ public class UserDbStorage implements UserDao {
             }, keyHolder);
             return Long.parseLong(keyHolder.getKey().toString());
         } else {
-            jdbcTemplate.update(query
-                    , user.getLogin()
-                    , user.getName()
-                    , user.getEmail()
-                    , user.getBirthday()
-                    , user.getId());
+            jdbcTemplate.update(query, user.getLogin(), user.getName(), user.getEmail(), user.getBirthday(),
+                    user.getId());
             return Long.parseLong(user.getId().toString());
         }
     }
