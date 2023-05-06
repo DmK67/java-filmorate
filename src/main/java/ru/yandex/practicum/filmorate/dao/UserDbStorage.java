@@ -45,7 +45,8 @@ public class UserDbStorage implements UserDao {
     public User updateUser(User user) {
         getUserById(user.getId());
         User validUser = validationFilm(user);
-        String sqlQuery = "update USERS set USER_LOGIN = ?, USER_NAME = ?, USER_EMAIL = ?, USER_BIRTHDAY = ? where USER_ID = ?";
+        String sqlQuery = "update USERS set USER_LOGIN = ?, USER_NAME = ?, USER_EMAIL = ?, USER_BIRTHDAY = ?" +
+                " where USER_ID = ?";
         writingToTableUsers(validUser, sqlQuery);
         log.info(validUser + " Пользователь успешно обновлен");
         return validUser;
@@ -60,7 +61,8 @@ public class UserDbStorage implements UserDao {
     @Override
     public User getUserById(Long id) {
         checkReportExistsUser(id);
-        String sqlQuery = "select USER_ID, USER_LOGIN, USER_NAME, USER_EMAIL, USER_BIRTHDAY from USERS where USER_ID = ?";
+        String sqlQuery = "select USER_ID, USER_LOGIN, USER_NAME, USER_EMAIL, USER_BIRTHDAY from USERS" +
+                " where USER_ID = ?";
         User user = jdbcTemplate.queryForObject(sqlQuery, this::mapRowToUser, id);
         return user;
     }
@@ -96,7 +98,8 @@ public class UserDbStorage implements UserDao {
         String sqlQueryFriendsUser1 = "select FRIENDSHIP_FRIEND_ID from FRIENDSHIP where FRIENDSHIP_USER_ID = ?";
         String sqlQueryFriendsUser2 = "select FRIENDSHIP_FRIEND_ID from FRIENDSHIP where FRIENDSHIP_USER_ID = ?";
         List<Long> listIdFriendsUser1 = jdbcTemplate.queryForList(sqlQueryFriendsUser1, new Long[]{id}, Long.class);
-        List<Long> listIdFriendsUser2 = jdbcTemplate.queryForList(sqlQueryFriendsUser2, new Long[]{otherId}, Long.class);
+        List<Long> listIdFriendsUser2 = jdbcTemplate.queryForList(sqlQueryFriendsUser2, new Long[]{otherId}
+                , Long.class);
         List<Long> intersectList = listIdFriendsUser1.stream()
                 .filter(listIdFriendsUser2::contains)
                 .collect(Collectors.toList());
@@ -178,7 +181,6 @@ public class UserDbStorage implements UserDao {
     }
 
     private void checkReportExistsUser(Long id) {
-        //final String sqlQuery = "SELECT EXISTS(select USER_ID, USER_EMAIL, USER_LOGIN, USER_NAME, USER_BIRTHDAY from USERS where USER_ID = ?)";
         final String sqlQuery = "SELECT EXISTS(select * from USERS where USER_ID = ?)";
         boolean exists = false;
         exists = jdbcTemplate.queryForObject(sqlQuery, new Long[]{id}, Boolean.class);

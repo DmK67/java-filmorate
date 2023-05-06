@@ -42,7 +42,8 @@ public class FilmDbStorage implements FilmDao {
     @Override
     public Film addFilm(Film film) {
         Film validFilm = validationFilm(film);
-        final String sqlQueryInsert = "insert into FILMS(FILM_NAME, FILM_DESCRIPTION, FILM_RELEASE_DATE, FILM_DURATION, FILM_MPA)" +
+        final String sqlQueryInsert = "insert into FILMS(FILM_NAME, FILM_DESCRIPTION, FILM_RELEASE_DATE" +
+                ", FILM_DURATION, FILM_MPA)" +
                 " values (?, ?, ?, ?, ?)";
         Long id = writingToTable(validFilm, sqlQueryInsert);
         log.info(getFilmById(id) + " Фильм успешно добавлен!");
@@ -63,14 +64,16 @@ public class FilmDbStorage implements FilmDao {
 
     @Override
     public List<Film> listFilms() {
-        final String sqlQuery = "select FILM_ID, FILM_NAME, FILM_DESCRIPTION, FILM_RELEASE_DATE, FILM_DURATION, FILM_MPA from FILMS";
+        final String sqlQuery = "select FILM_ID, FILM_NAME, FILM_DESCRIPTION, FILM_RELEASE_DATE, FILM_DURATION" +
+                ", FILM_MPA from FILMS";
         return jdbcTemplate.query(sqlQuery, this::mapRowToFilm);
     }
 
     @Override
     public Film getFilmById(Long id) {
         checkReportExistsFilm(id);
-        final String sqlQuery = "select FILM_ID, FILM_NAME, FILM_DESCRIPTION, FILM_RELEASE_DATE, FILM_DURATION, FILM_MPA" +
+        final String sqlQuery = "select FILM_ID, FILM_NAME, FILM_DESCRIPTION, FILM_RELEASE_DATE, FILM_DURATION" +
+                ", FILM_MPA" +
                 " from FILMS where FILM_ID = ?";
         Film film = jdbcTemplate.queryForObject(sqlQuery, this::mapRowToFilm, id);
         return film;
