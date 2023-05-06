@@ -15,7 +15,7 @@ import java.util.List;
 @Component
 @Repository
 @Slf4j
-public class GenreDbStorage implements GenreDao{
+public class GenreDbStorage implements GenreDao {
     private final JdbcTemplate jdbcTemplate;
 
     public GenreDbStorage(JdbcTemplate jdbcTemplate) {
@@ -36,6 +36,24 @@ public class GenreDbStorage implements GenreDao{
         return genre;
     }
 
+    @Override
+    public boolean checkReportExitsGenres(Long id) {
+        boolean exists = false;
+        String sqlQuery = "SELECT EXISTS(select * from FILM_GENRES where FILM_GENRES_ID = ?)";
+        return exists = jdbcTemplate.queryForObject(sqlQuery, new Long[]{id}, Boolean.class);
+    }
+
+    @Override
+    public List<Genre> getListGenres(Long id) {
+        List<Genre> listGenres = new ArrayList<>();
+        String sqlQueryListGenres = "select FILM_GENRES_FILM_ID from FILM_GENRES where FILM_GENRES_ID = ?";
+        List<Long> listIdGenres = jdbcTemplate.queryForList(sqlQueryListGenres, new Long[]{id}, Long.class);
+        for (Long idGenre : listIdGenres) {
+            listGenres.add(getGenreById(Math.toIntExact(idGenre)));
+        }
+        return listGenres;
+    }
+
     private Genre mapRowToGenres(ResultSet resultSet, int rowNum) throws SQLException {
         return Genre.builder()
                 .id(resultSet.getInt("GENRES_GENRES_ID"))
@@ -52,19 +70,4 @@ public class GenreDbStorage implements GenreDao{
         }
     }
 
-    public boolean checkReportExitsGenres(Long id) {
-        String sqlQuery = "SELECT EXISTS(select * from FILM_GENRES where FILM_GENRES_ID = ?)";
-        boolean exists = false;
-        return exists = jdbcTemplate.queryForObject(sqlQuery, new Long[]{id}, Boolean.class);
-    }
-
-    public List<Genre> getListGenres(Long id) {
-        List<Genre> listGenres = new ArrayList<>();
-        String sqlQueryListGenres = "select FILM_GENRES_FILM_ID from FILM_GENRES where FILM_GENRES_ID = ?";
-        List<Long> listIdGenres = jdbcTemplate.queryForList(sqlQueryListGenres, new Long[]{id}, Long.class);
-        for (Long idGenre : listIdGenres) {
-            listGenres.add(getGenreById(Math.toIntExact(idGenre)));
-        }
-        return listGenres;
-    }
 }

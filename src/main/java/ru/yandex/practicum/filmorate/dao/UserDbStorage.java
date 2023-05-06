@@ -57,22 +57,6 @@ public class UserDbStorage implements UserDao {
         return jdbcTemplate.query(sqlQuery, this::mapRowToUser);
     }
 
-    private User validationFilm(User user) {
-        if (user.getBirthday().isAfter(LocalDate.now())) {
-            log.info(user.getBirthday() + " Ошибка! Дата рождения не может быть в будущем!");
-            throw new ValidationException("Дата рождения не может быть в будущем.");
-        }
-        if (user.getName() == null || user.getName().isBlank()) {
-            user.setName(user.getLogin());
-            log.info("Имя пользователя для отображения пустое — в таком случае будет используем логин.");
-        }
-        if (user.getLogin().trim().contains(" ")) {
-            log.info(user.getLogin() + " Ошибка! Логин не может быть пустым и содержать пробелы!");
-            throw new ValidationException("Логин не может быть пустым и содержать пробелы.");
-        }
-        return user;
-    }
-
     @Override
     public User getUserById(Long id) {
         checkReportExistsUser(id);
@@ -92,27 +76,6 @@ public class UserDbStorage implements UserDao {
                     , user1.getId()
                     , user2.getId());
             log.info("Пользователь " + user1 + " дружит с пользователем " + user2);
-        }
-    }
-
-    public boolean checkFriendshipExits(Long id, Long friendId) {
-        String sqlQuery = "SELECT EXISTS(select * from FRIENDSHIP AS tols_user where FRIENDSHIP_USER_ID = ?" +
-                " AND EXISTS (SELECT * FROM FRIENDSHIP WHERE FRIENDSHIP_FRIEND_ID= ?))";
-        boolean exists = false;
-        exists = jdbcTemplate.queryForObject(sqlQuery, new Long[]{id, friendId}, Boolean.class);
-        if (exists) {
-            return exists;
-        }
-        return exists;
-    }
-
-    public void checkReportExistsUser(Long id) {
-        //final String sqlQuery = "SELECT EXISTS(select USER_ID, USER_EMAIL, USER_LOGIN, USER_NAME, USER_BIRTHDAY from USERS where USER_ID = ?)";
-       final String sqlQuery = "SELECT EXISTS(select * from USERS where USER_ID = ?)";
-        boolean exists = false;
-        exists = jdbcTemplate.queryForObject(sqlQuery, new Long[]{id}, Boolean.class);
-        if (exists == false) {
-            throw new NotFoundException("Пользователь по id: " + id + " не найден!");
         }
     }
 
@@ -186,4 +149,42 @@ public class UserDbStorage implements UserDao {
             return Long.parseLong(user.getId().toString());
         }
     }
+
+    private User validationFilm(User user) {
+        if (user.getBirthday().isAfter(LocalDate.now())) {
+            log.info(user.getBirthday() + " Ошибка! Дата рождения не может быть в будущем!");
+            throw new ValidationException("Дата рождения не может быть в будущем.");
+        }
+        if (user.getName() == null || user.getName().isBlank()) {
+            user.setName(user.getLogin());
+            log.info("Имя пользователя для отображения пустое — в таком случае будет используем логин.");
+        }
+        if (user.getLogin().trim().contains(" ")) {
+            log.info(user.getLogin() + " Ошибка! Логин не может быть пустым и содержать пробелы!");
+            throw new ValidationException("Логин не может быть пустым и содержать пробелы.");
+        }
+        return user;
+    }
+
+    private boolean checkFriendshipExits(Long id, Long friendId) {
+        String sqlQuery = "SELECT EXISTS(select * from FRIENDSHIP AS tols_user where FRIENDSHIP_USER_ID = ?" +
+                " AND EXISTS (SELECT * FROM FRIENDSHIP WHERE FRIENDSHIP_FRIEND_ID= ?))";
+        boolean exists = false;
+        exists = jdbcTemplate.queryForObject(sqlQuery, new Long[]{id, friendId}, Boolean.class);
+        if (exists) {
+            return exists;
+        }
+        return exists;
+    }
+
+    private void checkReportExistsUser(Long id) {
+        //final String sqlQuery = "SELECT EXISTS(select USER_ID, USER_EMAIL, USER_LOGIN, USER_NAME, USER_BIRTHDAY from USERS where USER_ID = ?)";
+        final String sqlQuery = "SELECT EXISTS(select * from USERS where USER_ID = ?)";
+        boolean exists = false;
+        exists = jdbcTemplate.queryForObject(sqlQuery, new Long[]{id}, Boolean.class);
+        if (exists == false) {
+            throw new NotFoundException("Пользователь по id: " + id + " не найден!");
+        }
+    }
+
 }

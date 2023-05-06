@@ -49,6 +49,61 @@ public class FilmDbStorage implements FilmDao {
         return getFilmById(id);
     }
 
+    @Override
+    public Film updateFilm(Film film) {
+        getFilmById(film.getId());
+        Film validFilm = validationFilm(film);
+        final String sqlQuery = "update FILMS set FILM_NAME = ?, FILM_DESCRIPTION = ?, FILM_RELEASE_DATE = ?," +
+                " FILM_DURATION = ?, FILM_MPA = ? where FILM_ID = ?";
+        Long id = writingToTable(validFilm, sqlQuery);
+        film = getFilmById(id);
+        log.info(validFilm + " Фильм успешно обновлен");
+        return film;
+    }
+
+    @Override
+    public List<Film> listFilms() {
+        final String sqlQuery = "select FILM_ID, FILM_NAME, FILM_DESCRIPTION, FILM_RELEASE_DATE, FILM_DURATION, FILM_MPA from FILMS";
+        return jdbcTemplate.query(sqlQuery, this::mapRowToFilm);
+    }
+
+    @Override
+    public Film getFilmById(Long id) {
+        checkReportExistsFilm(id);
+        final String sqlQuery = "select FILM_ID, FILM_NAME, FILM_DESCRIPTION, FILM_RELEASE_DATE, FILM_DURATION, FILM_MPA" +
+                " from FILMS where FILM_ID = ?";
+        Film film = jdbcTemplate.queryForObject(sqlQuery, this::mapRowToFilm, id);
+        return film;
+    }
+
+    private void checkReportExistsFilm(Long id) {
+        final String sqlQuery = "SELECT EXISTS(select FILM_ID, FILM_NAME, FILM_DESCRIPTION, FILM_RELEASE_DATE" +
+                ", FILM_DURATION, FILM_MPA from FILMS where FILM_ID = ?)";
+        boolean exists = false;
+        exists = jdbcTemplate.queryForObject(sqlQuery, new Long[]{id}, Boolean.class);
+        if (exists == false) {
+            throw new NotFoundException("Пользователь по id: " + id + " не найден!");
+        }
+    }
+
+    @Override
+    public void addLikeFilmToUser(Long id, Long userId) {
+        final String sqlQueryInsertLike = "insert into FILM_LIKES(FILMS_LIKES_ID, FILM_LIKES_USER_ID_WHO_LIKE_FILM)" +
+                " values (?, ?)";
+        jdbcTemplate.update(sqlQueryInsertLike
+                , id
+                , userId);
+    }
+
+    @Override
+    public void deleteLikeFilmToUser(Long id, Long userId) {
+        final String sqlQuery = "delete from FILM_LIKES" +
+                " where FILMS_LIKES_ID = ? and FILM_LIKES_USER_ID_WHO_LIKE_FILM = ?";
+        jdbcTemplate.update(sqlQuery
+                , id
+                , userId);
+    }
+
     private Long writingToTable(Film film, String query) {
         if (film.getId() == null) {
             KeyHolder keyHolder = new GeneratedKeyHolder();
@@ -150,31 +205,6 @@ public class FilmDbStorage implements FilmDao {
         }
     }
 
-    @Override
-    public Film updateFilm(Film film) {
-        getFilmById(film.getId());
-        Film validFilm = validationFilm(film);
-        final String sqlQuery = "update FILMS set FILM_NAME = ?, FILM_DESCRIPTION = ?, FILM_RELEASE_DATE = ?," +
-                " FILM_DURATION = ?, FILM_MPA = ? where FILM_ID = ?";
-        Long id = writingToTable(validFilm, sqlQuery);
-        film = getFilmById(id);
-        log.info(validFilm + " Фильм успешно обновлен");
-        return film;
-    }
-
-    @Override
-    public List<Film> listFilms() {
-        final String sqlQuery = "select FILM_ID, FILM_NAME, FILM_DESCRIPTION, FILM_RELEASE_DATE, FILM_DURATION, FILM_MPA from FILMS";
-        return jdbcTemplate.query(sqlQuery, this::mapRowToFilm);
-    }
-
-    private Genre mapRowToGenres(ResultSet resultSet, int rowNum) throws SQLException {
-        return Genre.builder()
-                .id(resultSet.getInt("GENRES_GENRES_ID"))
-                .name(resultSet.getString("GENRES_NAME"))
-                .build();
-    }
-
     private Film mapRowToFilm(ResultSet resultSet, int rowNum) throws SQLException {
         Film film = Film.builder()
                 .id(resultSet.getLong("FILM_ID"))
@@ -192,40 +222,4 @@ public class FilmDbStorage implements FilmDao {
         return film;
     }
 
-    @Override
-    public Film getFilmById(Long id) {
-        checkReportExistsFilm(id);
-        final String sqlQuery = "select FILM_ID, FILM_NAME, FILM_DESCRIPTION, FILM_RELEASE_DATE, FILM_DURATION, FILM_MPA" +
-                " from FILMS where FILM_ID = ?";
-        Film film = jdbcTemplate.queryForObject(sqlQuery, this::mapRowToFilm, id);
-        return film;
-    }
-
-    private void checkReportExistsFilm(Long id) {
-        final String sqlQuery = "SELECT EXISTS(select FILM_ID, FILM_NAME, FILM_DESCRIPTION, FILM_RELEASE_DATE" +
-                ", FILM_DURATION, FILM_MPA from FILMS where FILM_ID = ?)";
-        boolean exists = false;
-        exists = jdbcTemplate.queryForObject(sqlQuery, new Long[]{id}, Boolean.class);
-        if (exists == false) {
-            throw new NotFoundException("Пользователь по id: " + id + " не найден!");
-        }
-    }
-
-    @Override
-    public void addLikeFilmToUser(Long id, Long userId) {
-        final String sqlQueryInsertLike = "insert into FILM_LIKES(FILMS_LIKES_ID, FILM_LIKES_USER_ID_WHO_LIKE_FILM)" +
-                " values (?, ?)";
-        jdbcTemplate.update(sqlQueryInsertLike
-                , id
-                , userId);
-    }
-
-    @Override
-    public void deleteLikeFilmToUser(Long id, Long userId) {
-        final String sqlQuery = "delete from FILM_LIKES" +
-                " where FILMS_LIKES_ID = ? and FILM_LIKES_USER_ID_WHO_LIKE_FILM = ?";
-        jdbcTemplate.update(sqlQuery
-                , id
-                , userId);
-    }
 }

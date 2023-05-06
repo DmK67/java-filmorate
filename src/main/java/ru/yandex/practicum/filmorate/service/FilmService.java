@@ -23,8 +23,8 @@ public class FilmService {
     public void addLikeFilm(Long id, Long userId) { //PUT /films/{id}/like/{userId} — пользователь ставит лайк фильму.
         userDao.getUserById(userId);
         Film film = filmDao.getFilmById(id);
-        film.setLikes(userId);
         filmDao.addLikeFilmToUser(id, userId);
+        film.setLikes(userId);
         log.info("Пользователь по id: " + userId + " поставил Like фильму " + film);
     }
 

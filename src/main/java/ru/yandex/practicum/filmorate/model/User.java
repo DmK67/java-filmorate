@@ -28,4 +28,9 @@ public class User {
     private String name;
     private LocalDate birthday;
 
+//    public User(String email, String login, LocalDate birthday) {
+//        this.email = email;
+//        this.login = login;
+//        this.birthday = birthday;
+//    }
 }
