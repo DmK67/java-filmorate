@@ -65,18 +65,18 @@ class UserDbStorageTest {
         user2.setName("name");
         userDbStorage.updateUser(user2);
         User user3 = userDbStorage.getUserById(1L);
-        assertEquals(user2.getId(),user3.getId());
-        assertEquals(user2.getName(),user3.getName());
-        assertEquals(user2.getLogin(),user3.getLogin());
-        assertEquals(user2.getEmail(),user3.getEmail());
-        assertEquals(user2.getBirthday(),user3.getBirthday());
+        assertEquals(user2.getId(), user3.getId());
+        assertEquals(user2.getName(), user3.getName());
+        assertEquals(user2.getLogin(), user3.getLogin());
+        assertEquals(user2.getEmail(), user3.getEmail());
+        assertEquals(user2.getBirthday(), user3.getBirthday());
     }
 
     @DirtiesContext
     @Test
     void getUserList() throws ValidationException {
         List<User> users = userDbStorage.listUsers();
-        assertEquals(0,users.size());
+        assertEquals(0, users.size());
         User user1 = User.builder()
                 .email("pobeda@ya.ru")
                 .login("pobedaLogin")
@@ -84,7 +84,7 @@ class UserDbStorageTest {
                 .build();
         userDbStorage.addUser(user1);
         users = userDbStorage.listUsers();
-        assertEquals(1,users.size());
+        assertEquals(1, users.size());
     }
 
 }

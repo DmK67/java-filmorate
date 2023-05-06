@@ -11,7 +11,6 @@ import ru.yandex.practicum.filmorate.dao.UserDbStorage;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
-import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.model.Mpa;
 import ru.yandex.practicum.filmorate.model.User;
 
@@ -87,7 +86,7 @@ class FilmStorageTest {
     @Test
     void listFilmsTest() throws ValidationException, NotFoundException {
         List<Film> films = filmStorage.listFilms();
-        assertEquals(0,films.size());
+        assertEquals(0, films.size());
         Film film1 = Film.builder()
                 .name("Pobeda")
                 .description("The victory will be ours")
@@ -97,7 +96,7 @@ class FilmStorageTest {
                 .build();
         filmStorage.addFilm(film1);
         films = filmStorage.listFilms();
-        assertEquals(1,films.size());
+        assertEquals(1, films.size());
     }
 
     @DirtiesContext
@@ -135,7 +134,7 @@ class FilmStorageTest {
                 .email("victory@ya.ru")
                 .name("Victory")
                 .login("Vic")
-                .birthday(LocalDate.of(1945,5,9))
+                .birthday(LocalDate.of(1945, 5, 9))
                 .build();
         userDbStorage.addUser(user);
         //User user1 = userDbStorage.getUserById(1L);
@@ -157,7 +156,7 @@ class FilmStorageTest {
                 .email("victory@ya.ru")
                 .name("Victory")
                 .login("Vic")
-                .birthday(LocalDate.of(1945,5,9))
+                .birthday(LocalDate.of(1945, 5, 9))
                 .build();
     }
 
