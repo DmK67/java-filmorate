@@ -27,17 +27,18 @@ class UserDbStorageTest {
     @Test
     void addUserTest() throws ValidationException, NotFoundException {
         User user1 = User.builder()
-                .email("pobeda@ya.ru")
-                .login("pobedaLogin")
+                .email("Pobeda@ya.ru")
+                .login("PobedaLogin")
+                .name("PobedaName")
                 .birthday(LocalDate.of(1945, 5, 9))
                 .build();
         User user2 = User.builder()
-                .email("pobeda@ya.ru")
-                .login("pobedaLogin")
+                .email("Pobeda@ya.ru")
+                .login("PobedaLogin")
                 .birthday(LocalDate.of(1945, 5, 9))
                 .build();
         user2.setId(1L);
-        user2.setName("pobedaLogin");
+        user2.setName("PobedaName");
         userDbStorage.addUser(user1);
         User user3 = userDbStorage.getUserById(1L);
         assertEquals(user2.getId(), user3.getId());
@@ -51,18 +52,19 @@ class UserDbStorageTest {
     @Test
     void updateUserTest() throws ValidationException, NotFoundException {
         User user1 = User.builder()
-                .email("pobeda@ya.ru")
-                .login("pobedaLogin")
+                .email("Pobeda@ya.ru")
+                .login("PobedaLogin")
+                .name("PobedaName")
                 .birthday(LocalDate.of(1945, 5, 9))
                 .build();
         userDbStorage.addUser(user1);
         User user2 = User.builder()
-                .email("pobeda@ya.ru")
-                .login("pobedaLogin")
+                .email("Pobeda@ya.ru")
+                .login("PobedaLogin")
                 .birthday(LocalDate.of(1945, 5, 9))
                 .build();
         user2.setId(1L);
-        user2.setName("name");
+        user2.setName("PobedaName");
         userDbStorage.updateUser(user2);
         User user3 = userDbStorage.getUserById(1L);
         assertEquals(user2.getId(), user3.getId());
@@ -80,6 +82,7 @@ class UserDbStorageTest {
         User user1 = User.builder()
                 .email("pobeda@ya.ru")
                 .login("pobedaLogin")
+                .name("PobedaName")
                 .birthday(LocalDate.of(1945, 5, 9))
                 .build();
         userDbStorage.addUser(user1);

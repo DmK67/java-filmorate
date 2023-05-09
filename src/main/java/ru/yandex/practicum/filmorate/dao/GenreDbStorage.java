@@ -1,26 +1,30 @@
 package ru.yandex.practicum.filmorate.dao;
 
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
+import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Component
 @Repository
 @Slf4j
+@AllArgsConstructor
 public class GenreDbStorage implements GenreDao {
     private final JdbcTemplate jdbcTemplate;
-
-    public GenreDbStorage(JdbcTemplate jdbcTemplate) {
-        this.jdbcTemplate = jdbcTemplate;
-    }
+    private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
     @Override
     public List<Genre> listGenres() {
@@ -30,28 +34,21 @@ public class GenreDbStorage implements GenreDao {
 
     @Override
     public Genre getGenreById(int id) {
-        checkReportExistsMpa((long) id);
         String sqlQuery = "select * from GENRES where GENRES_GENRES_ID =?";
-        Genre genre = jdbcTemplate.queryForObject(sqlQuery, this::mapRowToGenres, id);
-        return genre;
-    }
-
-    @Override
-    public boolean checkReportExitsGenres(Long id) {
-        boolean exists = false;
-        String sqlQuery = "SELECT EXISTS(select * from FILM_GENRES where FILM_GENRES_ID = ?)";
-        return exists = jdbcTemplate.queryForObject(sqlQuery, new Long[]{id}, Boolean.class);
-    }
-
-    @Override
-    public List<Genre> getListGenres(Long id) {
-        List<Genre> listGenres = new ArrayList<>();
-        String sqlQueryListGenres = "select FILM_GENRES_FILM_ID from FILM_GENRES where FILM_GENRES_ID = ?";
-        List<Long> listIdGenres = jdbcTemplate.queryForList(sqlQueryListGenres, new Long[]{id}, Long.class);
-        for (Long idGenre : listIdGenres) {
-            listGenres.add(getGenreById(Math.toIntExact(idGenre)));
+        try {
+            Genre genre = jdbcTemplate.queryForObject(sqlQuery, this::mapRowToGenres, id);
+            return genre;
+        } catch (EmptyResultDataAccessException e) {
+            throw new NotFoundException("Жанр по id: " + id + " не найден!");
         }
-        return listGenres;
+    }
+
+    @Override
+    public List<Genre> getListGenresByMovieId(Long id) {
+        final String sqlQuery = "SELECT * FROM FILM_GENRES FG INNER JOIN GENRES G " +
+                "on FG.FILM_GENRES_GENRES_ID = G.GENRES_GENRES_ID WHERE FG.FILM_GENRES_FILM_ID=?";
+        List<Genre> ls = jdbcTemplate.query(sqlQuery, this::mapRowToGenres, id);
+        return jdbcTemplate.query(sqlQuery, this::mapRowToGenres, id);
     }
 
     private Genre mapRowToGenres(ResultSet resultSet, int rowNum) throws SQLException {
@@ -61,12 +58,19 @@ public class GenreDbStorage implements GenreDao {
                 .build();
     }
 
-    private void checkReportExistsMpa(Long id) {
-        String sqlQuery = "SELECT EXISTS(select * from GENRES where GENRES_GENRES_ID = ?)";
-        boolean exists = false;
-        exists = jdbcTemplate.queryForObject(sqlQuery, new Long[]{id}, Boolean.class);
-        if (exists == false) {
-            throw new NotFoundException("Жанр фильмов по id: " + id + " не найден!");
+    @Override
+    public void setGenresForFilms(Map<Long, Film> filmMap) {
+        MapSqlParameterSource parameterSource = new MapSqlParameterSource();
+        parameterSource.addValue("ids", filmMap.keySet());
+        final String sqlQuery = "SELECT * FROM GENRES G join FILM_GENRES FG" +
+                " on G.GENRES_GENRES_ID = FG.FILM_GENRES_GENRES_ID WHERE FG.FILM_GENRES_FILM_ID IN (:ids)";
+        List<Map<String, Object>> maps = namedParameterJdbcTemplate.queryForList(sqlQuery, parameterSource);
+        for (Map<String, Object> genre : maps) {
+            Film film = filmMap.get(new Long(genre.get("FILM_GENRES_FILM_ID").toString()));
+            if (film.getGenres() == null) {
+                film.setGenres(new ArrayList<>());
+            }
+            film.getGenres().add(new Genre((Integer) genre.get("FILM_GENRES_GENRES_ID"), (String) genre.get("GENRES_NAME")));
         }
     }
 

@@ -1,6 +1,8 @@
 package ru.yandex.practicum.filmorate.dao;
 
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Repository;
@@ -14,13 +16,10 @@ import java.util.List;
 @Component
 @Repository
 @Slf4j
+@AllArgsConstructor
 public class MpaDbStorage implements MpaDao {
 
     private final JdbcTemplate jdbcTemplate;
-
-    public MpaDbStorage(JdbcTemplate jdbcTemplate) {
-        this.jdbcTemplate = jdbcTemplate;
-    }
 
     @Override
     public List<Mpa> listMpa() {
@@ -30,10 +29,13 @@ public class MpaDbStorage implements MpaDao {
 
     @Override
     public Mpa getMpaById(int id) {
-        checkReportExistsMpa((long) id);
         String sqlQuery = "select * from MPA where MPA_MPA_ID =?";
-        Mpa mpa = jdbcTemplate.queryForObject(sqlQuery, this::mapRowToMPA, id);
-        return mpa;
+        try {
+            Mpa mpa = jdbcTemplate.queryForObject(sqlQuery, this::mapRowToMPA, id);
+            return mpa;
+        } catch (EmptyResultDataAccessException e) {
+            throw new NotFoundException("Рейтинг по id: " + id + " не найден!");
+        }
     }
 
     private Mpa mapRowToMPA(ResultSet resultSet, int rowNum) throws SQLException {
@@ -41,15 +43,6 @@ public class MpaDbStorage implements MpaDao {
                 .id(resultSet.getInt("MPA_MPA_ID"))
                 .name(resultSet.getString("MPA_NAME"))
                 .build();
-    }
-
-    private void checkReportExistsMpa(Long id) {
-        String sqlQuery = "SELECT EXISTS(select * from MPA where MPA_MPA_ID = ?)";
-        boolean exists = false;
-        exists = jdbcTemplate.queryForObject(sqlQuery, new Long[]{id}, Boolean.class);
-        if (exists == false) {
-            throw new NotFoundException("Рейтинг фильмов по id: " + id + " не найден!");
-        }
     }
 
 }

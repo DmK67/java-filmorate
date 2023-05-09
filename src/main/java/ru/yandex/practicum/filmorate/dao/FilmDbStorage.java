@@ -1,30 +1,30 @@
 package ru.yandex.practicum.filmorate.dao;
 
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
-import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
+import ru.yandex.practicum.filmorate.model.Mpa;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import static java.sql.Statement.RETURN_GENERATED_KEYS;
 
 @Component
 @Repository
 @Slf4j
+@AllArgsConstructor
 public class FilmDbStorage implements FilmDao {
 
     private final MpaDao mpaDao;
@@ -33,19 +33,12 @@ public class FilmDbStorage implements FilmDao {
 
     private final JdbcTemplate jdbcTemplate;
 
-    public FilmDbStorage(MpaDao mpaDao, GenreDao genreDao, JdbcTemplate jdbcTemplate) {
-        this.mpaDao = mpaDao;
-        this.genreDao = genreDao;
-        this.jdbcTemplate = jdbcTemplate;
-    }
-
     @Override
     public Film addFilm(Film film) {
-        Film validFilm = validationFilm(film);
         final String sqlQueryInsert = "insert into FILMS(FILM_NAME, FILM_DESCRIPTION, FILM_RELEASE_DATE" +
                 ", FILM_DURATION, FILM_MPA)" +
                 " values (?, ?, ?, ?, ?)";
-        Long id = writingToTable(validFilm, sqlQueryInsert);
+        Long id = writingToTable(film, sqlQueryInsert);
         log.info(getFilmById(id) + " Фильм успешно добавлен!");
         return getFilmById(id);
     }
@@ -53,39 +46,38 @@ public class FilmDbStorage implements FilmDao {
     @Override
     public Film updateFilm(Film film) {
         getFilmById(film.getId());
-        Film validFilm = validationFilm(film);
         final String sqlQuery = "update FILMS set FILM_NAME = ?, FILM_DESCRIPTION = ?, FILM_RELEASE_DATE = ?," +
                 " FILM_DURATION = ?, FILM_MPA = ? where FILM_ID = ?";
-        Long id = writingToTable(validFilm, sqlQuery);
+        Long id = writingToTable(film, sqlQuery);
         film = getFilmById(id);
-        log.info(validFilm + " Фильм успешно обновлен");
+        log.info(film + " Фильм успешно обновлен");
         return film;
     }
 
     @Override
     public List<Film> listFilms() {
-        final String sqlQuery = "select FILM_ID, FILM_NAME, FILM_DESCRIPTION, FILM_RELEASE_DATE, FILM_DURATION" +
-                ", FILM_MPA from FILMS";
-        return jdbcTemplate.query(sqlQuery, this::mapRowToFilm);
+        final String sqlQuery = "SELECT FILM_ID, FILM_NAME, FILM_DESCRIPTION, FILM_RELEASE_DATE, FILM_DURATION, " +
+                "FILM_MPA, MPA_NAME FROM FILMS F JOIN MPA M on M.MPA_MPA_ID = F.FILM_MPA";
+        List<Film> filmList = jdbcTemplate.query(sqlQuery, this::mapRowToFilm);
+        Map<Long, Film> filmMap = new HashMap<>();
+
+        for (Film film : filmList) {
+            filmMap.put(film.getId(), film);
+        }
+        genreDao.setGenresForFilms(filmMap);
+        return new ArrayList<>(filmMap.values());
     }
 
     @Override
     public Film getFilmById(Long id) {
-        checkReportExistsFilm(id);
-        final String sqlQuery = "select FILM_ID, FILM_NAME, FILM_DESCRIPTION, FILM_RELEASE_DATE, FILM_DURATION" +
-                ", FILM_MPA" +
-                " from FILMS where FILM_ID = ?";
-        Film film = jdbcTemplate.queryForObject(sqlQuery, this::mapRowToFilm, id);
-        return film;
-    }
-
-    private void checkReportExistsFilm(Long id) {
-        final String sqlQuery = "SELECT EXISTS(select FILM_ID, FILM_NAME, FILM_DESCRIPTION, FILM_RELEASE_DATE" +
-                ", FILM_DURATION, FILM_MPA from FILMS where FILM_ID = ?)";
-        boolean exists = false;
-        exists = jdbcTemplate.queryForObject(sqlQuery, new Long[]{id}, Boolean.class);
-        if (exists == false) {
-            throw new NotFoundException("Пользователь по id: " + id + " не найден!");
+        try {
+            final String sqlQuery = "SELECT FILM_ID, FILM_NAME, FILM_DESCRIPTION, FILM_RELEASE_DATE, FILM_DURATION, " +
+                    "FILM_MPA, MPA_NAME FROM FILMS INNER JOIN MPA ON FILMS.FILM_MPA = MPA.MPA_MPA_ID WHERE FILM_ID=?";
+            Film film = jdbcTemplate.queryForObject(sqlQuery, this::mapRowToFilm, id);
+            film.setGenres(genreDao.getListGenresByMovieId(id));
+            return film;
+        } catch (EmptyResultDataAccessException e) {
+            throw new NotFoundException("Фильм по id: " + id + " не найден!");
         }
     }
 
@@ -105,91 +97,79 @@ public class FilmDbStorage implements FilmDao {
 
     private Long writingToTable(Film film, String query) {
         if (film.getId() == null) {
-            KeyHolder keyHolder = new GeneratedKeyHolder();
-            jdbcTemplate.update(connection -> {
-                PreparedStatement ps = connection
-                        .prepareStatement(query, RETURN_GENERATED_KEYS);
-                ps.setString(1, film.getName());
-                ps.setString(2, film.getDescription());
-                ps.setString(3, film.getReleaseDate().toString());
-                ps.setLong(4, film.getDuration());
-                ps.setLong(5, film.getMpa().getId());
-                return ps;
-            }, keyHolder);
-            if (film.getGenres().size() > 0) {
-                for (Genre genreId : film.getGenres()) {
-                    final String sqlQueryFilmGenres = "insert into FILM_GENRES(FILM_GENRES_ID, FILM_GENRES_FILM_ID)" +
-                            " values (?, ?)";
-                    jdbcTemplate.update(sqlQueryFilmGenres, Long.parseLong(keyHolder.getKey().toString()),
-                            genreId.getId());
-                }
-            }
-            return Long.parseLong(keyHolder.getKey().toString());
+            return writingToTableWithoutId(film, query);
         } else {
-            jdbcTemplate.update(query, film.getName(), film.getDescription(), film.getReleaseDate(),
-                    film.getDuration(), film.getMpa().getId(), film.getId());
-            film.setMpa(mpaDao.getMpaById(film.getMpa().getId()));
-            if (film.getGenres().size() > 0) {
-                final String sqlQueryListGenges = "select FILM_GENRES_FILM_ID FILM_GENRES from FILM_GENRES" +
-                        " where FILM_GENRES_ID = ?";
-                List<Long> listIdGenres = jdbcTemplate.queryForList(sqlQueryListGenges,
-                        new Long[]{Long.parseLong(film.getId().toString())}, Long.class);
-
-                for (Long idGenre : listIdGenres) {
-                    final String sqlQueryGenreDeleteById = "delete from FILM_GENRES where FILM_GENRES_ID = ?" +
-                            " and FILM_GENRES_FILM_ID = ?";
-                    jdbcTemplate.update(sqlQueryGenreDeleteById, Long.parseLong(film.getId().toString()), idGenre);
-                }
-                Set<Long> myList = new HashSet<Long>();
-                for (Genre genreId : film.getGenres()) {
-                    myList.add((long) genreId.getId());
-                }
-                final String sqlQueryFilmGenres = "insert into FILM_GENRES(FILM_GENRES_ID, FILM_GENRES_FILM_ID)" +
-                        " values (?, ?)";
-                for (Long aLong : myList) {
-                    jdbcTemplate.update(sqlQueryFilmGenres, film.getId(), aLong);
-                }
-            } else {
-                final String sqlQueryListGenges = "select FILM_GENRES_FILM_ID FILM_GENRES from FILM_GENRES" +
-                        " where FILM_GENRES_ID = ?";
-                List<Long> listIdGenres = jdbcTemplate.queryForList(sqlQueryListGenges,
-                        new Long[]{Long.parseLong(film.getId().toString())}, Long.class);
-                for (Long idGenre : listIdGenres) {
-                    final String sqlQueryGenreDeleteById = "delete from FILM_GENRES where FILM_GENRES_ID = ?" +
-                            " and FILM_GENRES_FILM_ID = ?";
-                    jdbcTemplate.update(sqlQueryGenreDeleteById, Long.parseLong(film.getId().toString()), idGenre);
-                }
-            }
-            return Long.parseLong(film.getId().toString());
+            return writingToTableById(film, query);
         }
     }
 
-    private Film validationFilm(Film film) {
-        if (film.getDescription().length() > 200) {
-            log.info("Ошибка! Описание фильма больше 200 символов!");
-            throw new ValidationException("Максимальная длина описания фильма — 200 символов.");
+    private Long writingToTableWithoutId(Film film, String query) {
+        KeyHolder keyHolder = new GeneratedKeyHolder();
+        jdbcTemplate.update(connection -> {
+            PreparedStatement ps = connection
+                    .prepareStatement(query, RETURN_GENERATED_KEYS);
+            ps.setString(1, film.getName());
+            ps.setString(2, film.getDescription());
+            ps.setString(3, film.getReleaseDate().toString());
+            ps.setLong(4, film.getDuration());
+            ps.setLong(5, film.getMpa().getId());
+            return ps;
+        }, keyHolder);
+        if (film.getGenres().size() > 0) {
+            final String sqlQuery = "INSERT INTO FILM_GENRES(FILM_GENRES_FILM_ID, FILM_GENRES_GENRES_ID) VALUES ( ?, ? );";
+            jdbcTemplate.batchUpdate(sqlQuery, new BatchPreparedStatementSetter() {
+                @Override
+                public void setValues(PreparedStatement ps, int i) throws SQLException {
+                    ps.setLong(1, Long.parseLong(keyHolder.getKey().toString()));
+                    ps.setLong(2, film.getGenres().get(i).getId());
+                }
+
+                @Override
+                public int getBatchSize() {
+                    return film.getGenres().size();
+                }
+            });
         }
-        if (film.getReleaseDate().isBefore(LocalDate.of(1895, 12, 28))) {
-            log.info("Ошибка! Дата релиза — не может быть раньше 28.12.1895 г.!");
-            throw new ValidationException("Дата релиза — не может быть раньше 28.12.1895 г.");
-        }
-        if (film.getDuration() <= 0) {
-            log.info("Ошибка! Продолжительность фильма должна быть положительной!");
-            throw new ValidationException("Продолжительность фильма должна быть положительной.");
-        }
-        if (film.getGenres() == null || film.getLikes() == null) {
-            return Film.builder()
-                    .id(film.getId())
-                    .name(film.getName())
-                    .description(film.getDescription())
-                    .releaseDate(film.getReleaseDate())
-                    .duration(film.getDuration())
-                    .mpa(film.getMpa())
-                    .genres(new ArrayList<>())
-                    .build();
+        return Long.parseLong(keyHolder.getKey().toString());
+    }
+
+    private Long writingToTableById(Film film, String query) {
+        jdbcTemplate.update(query, film.getName(), film.getDescription(), film.getReleaseDate(),
+                film.getDuration(), film.getMpa().getId(), film.getId());
+        film.setMpa(mpaDao.getMpaById(film.getMpa().getId()));
+        if (film.getGenres().size() > 0) {
+
+            final String sqlQueryListGenges = "select FILM_GENRES_GENRES_ID from FILM_GENRES" +
+                    " where FILM_GENRES_FILM_ID = ?";
+            List<Long> listIdGenres = jdbcTemplate.queryForList(sqlQueryListGenges,
+                    new Long[]{Long.parseLong(film.getId().toString())}, Long.class);
+            for (Long idGenre : listIdGenres) {
+                final String sqlQueryGenreDeleteById = "delete from FILM_GENRES where FILM_GENRES_FILM_ID = ?" +
+                        " and FILM_GENRES_GENRES_ID = ?";
+                jdbcTemplate.update(sqlQueryGenreDeleteById, Long.parseLong(film.getId().toString()), idGenre);
+            }
+
+            Set<Long> myList = new HashSet<Long>();
+            for (Genre genreId : film.getGenres()) {
+                myList.add((long) genreId.getId());
+            }
+            final String sqlQueryFilmGenres = "insert into FILM_GENRES(FILM_GENRES_FILM_ID, FILM_GENRES_GENRES_ID)" +
+                    " values (?, ?)";
+            for (Long aLong : myList) {
+                jdbcTemplate.update(sqlQueryFilmGenres, film.getId(), aLong);
+            }
         } else {
-            return film;
+            final String sqlQueryListGenges = "select FILM_GENRES_GENRES_ID from FILM_GENRES" +
+                    " where FILM_GENRES_FILM_ID = ?";
+            List<Long> listIdGenres = jdbcTemplate.queryForList(sqlQueryListGenges,
+                    new Long[]{Long.parseLong(film.getId().toString())}, Long.class);
+            for (Long idGenre : listIdGenres) {
+                final String sqlQueryGenreDeleteById = "delete from FILM_GENRES where FILM_GENRES_FILM_ID = ?" +
+                        " and FILM_GENRES_GENRES_ID = ?";
+                jdbcTemplate.update(sqlQueryGenreDeleteById, Long.parseLong(film.getId().toString()), idGenre);
+            }
         }
+        return Long.parseLong(film.getId().toString());
     }
 
     private Film mapRowToFilm(ResultSet resultSet, int rowNum) throws SQLException {
@@ -199,13 +179,8 @@ public class FilmDbStorage implements FilmDao {
                 .description(resultSet.getString("FILM_DESCRIPTION"))
                 .releaseDate(resultSet.getDate("FILM_RELEASE_DATE").toLocalDate())
                 .duration(resultSet.getInt("FILM_DURATION"))
-                .mpa(mpaDao.getMpaById((int) resultSet.getInt("FILM_MPA")))
-                .genres(new ArrayList<>())
+                .mpa(new Mpa(resultSet.getInt("FILM_MPA"), resultSet.getString("MPA_NAME")))
                 .build();
-        if (genreDao.checkReportExitsGenres(film.getId())) {
-            List<Genre> listGenresFilm = genreDao.getListGenres(film.getId());
-            film.setGenres(listGenresFilm);
-        }
         return film;
     }
 

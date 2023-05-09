@@ -141,6 +141,7 @@ class FilmDbStorageTest {
         filmStorage.addLikeFilmToUser(1L, 1L);
     }
 
+    @DirtiesContext
     @Test
     void deleteLikeFilmToUser() {
         Film film = Film.builder()

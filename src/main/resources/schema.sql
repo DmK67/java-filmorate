@@ -38,12 +38,12 @@ drop table IF EXISTS FILM_GENRES CASCADE;
 
 create table IF NOT EXISTS FILM_GENRES
 (
-    FILM_GENRES_ID      INTEGER not null,
-    FILM_GENRES_FILM_ID INTEGER not null,
+    FILM_GENRES_FILM_ID   INTEGER not null,
+    FILM_GENRES_GENRES_ID INTEGER not null,
     constraint FILM_GENRES_FILMS_FILM_ID_FK
-        foreign key (FILM_GENRES_ID) references FILMS,
+        foreign key (FILM_GENRES_FILM_ID) references FILMS,
     constraint FILM_GENRES_GENRES_GENRES_GENRES_ID_FK
-        foreign key (FILM_GENRES_ID) references GENRES
+        foreign key (FILM_GENRES_GENRES_ID) references GENRES
 );
 
 drop table IF EXISTS USERS CASCADE;

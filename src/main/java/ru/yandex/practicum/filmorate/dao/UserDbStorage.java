@@ -1,19 +1,19 @@
 package ru.yandex.practicum.filmorate.dao;
 
+import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
-import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -23,33 +23,28 @@ import static java.sql.Statement.RETURN_GENERATED_KEYS;
 @Repository
 @Component
 @Slf4j
+@AllArgsConstructor
 public class UserDbStorage implements UserDao {
 
     private final JdbcTemplate jdbcTemplate;
 
-    public UserDbStorage(JdbcTemplate jdbcTemplate) {
-        this.jdbcTemplate = jdbcTemplate;
-    }
-
     @Override
     public User addUser(User user) {
-        User validUser = validationFilm(user);
         String sqlQueryInsert = "insert into USERS(USER_LOGIN, USER_NAME, USER_EMAIL, USER_BIRTHDAY)" +
                 " values (?, ?, ?, ?)";
-        Long id = writingToTableUsers(validUser, sqlQueryInsert);
-        log.info(validUser + " Пользователь успешно добавлен.");
+        Long id = writingToTableUsers(user, sqlQueryInsert);
+        log.info(user + " Пользователь успешно добавлен.");
         return getUserById(id);
     }
 
     @Override
     public User updateUser(User user) {
         getUserById(user.getId());
-        User validUser = validationFilm(user);
         String sqlQuery = "update USERS set USER_LOGIN = ?, USER_NAME = ?, USER_EMAIL = ?, USER_BIRTHDAY = ?" +
                 " where USER_ID = ?";
-        writingToTableUsers(validUser, sqlQuery);
-        log.info(validUser + " Пользователь успешно обновлен");
-        return validUser;
+        writingToTableUsers(user, sqlQuery);
+        log.info(user + " Пользователь успешно обновлен");
+        return user;
     }
 
     @Override
@@ -60,11 +55,14 @@ public class UserDbStorage implements UserDao {
 
     @Override
     public User getUserById(Long id) {
-        checkReportExistsUser(id);
-        String sqlQuery = "select USER_ID, USER_LOGIN, USER_NAME, USER_EMAIL, USER_BIRTHDAY from USERS" +
-                " where USER_ID = ?";
-        User user = jdbcTemplate.queryForObject(sqlQuery, this::mapRowToUser, id);
-        return user;
+        try {
+            String sqlQuery = "select USER_ID, USER_LOGIN, USER_NAME, USER_EMAIL, USER_BIRTHDAY from USERS" +
+                    " where USER_ID = ?";
+            User user = jdbcTemplate.queryForObject(sqlQuery, this::mapRowToUser, id);
+            return user;
+        } catch (EmptyResultDataAccessException e) {
+            throw new NotFoundException("Пользователь по id: " + id + " не найден!");
+        }
     }
 
     @Override
@@ -127,38 +125,30 @@ public class UserDbStorage implements UserDao {
 
     private Long writingToTableUsers(User user, String query) {
         if (user.getId() == null) {
-            KeyHolder keyHolder = new GeneratedKeyHolder();
-            jdbcTemplate.update(connection -> {
-                PreparedStatement ps = connection
-                        .prepareStatement(query, RETURN_GENERATED_KEYS);
-                ps.setString(1, user.getLogin());
-                ps.setString(2, user.getName());
-                ps.setString(3, user.getEmail());
-                ps.setString(4, user.getBirthday().toString());
-                return ps;
-            }, keyHolder);
-            return Long.parseLong(keyHolder.getKey().toString());
+            return writingToTableUsersWithoutId(user, query);
         } else {
-            jdbcTemplate.update(query, user.getLogin(), user.getName(), user.getEmail(), user.getBirthday(),
-                    user.getId());
-            return Long.parseLong(user.getId().toString());
+            return writingToTableById(user, query);
         }
     }
 
-    private User validationFilm(User user) {
-        if (user.getBirthday().isAfter(LocalDate.now())) {
-            log.info(user.getBirthday() + " Ошибка! Дата рождения не может быть в будущем!");
-            throw new ValidationException("Дата рождения не может быть в будущем.");
-        }
-        if (user.getName() == null || user.getName().isBlank()) {
-            user.setName(user.getLogin());
-            log.info("Имя пользователя для отображения пустое — в таком случае будет используем логин.");
-        }
-        if (user.getLogin().trim().contains(" ")) {
-            log.info(user.getLogin() + " Ошибка! Логин не может быть пустым и содержать пробелы!");
-            throw new ValidationException("Логин не может быть пустым и содержать пробелы.");
-        }
-        return user;
+    private Long writingToTableUsersWithoutId(User user, String query) {
+        KeyHolder keyHolder = new GeneratedKeyHolder();
+        jdbcTemplate.update(connection -> {
+            PreparedStatement ps = connection
+                    .prepareStatement(query, RETURN_GENERATED_KEYS);
+            ps.setString(1, user.getLogin());
+            ps.setString(2, user.getName());
+            ps.setString(3, user.getEmail());
+            ps.setString(4, user.getBirthday().toString());
+            return ps;
+        }, keyHolder);
+        return Long.parseLong(keyHolder.getKey().toString());
+    }
+
+    private Long writingToTableById(User user, String query) {
+        jdbcTemplate.update(query, user.getLogin(), user.getName(), user.getEmail(), user.getBirthday(),
+                user.getId());
+        return Long.parseLong(user.getId().toString());
     }
 
     private boolean checkFriendshipExits(Long id, Long friendId) {
@@ -170,15 +160,6 @@ public class UserDbStorage implements UserDao {
             return exists;
         }
         return exists;
-    }
-
-    private void checkReportExistsUser(Long id) {
-        final String sqlQuery = "SELECT EXISTS(select * from USERS where USER_ID = ?)";
-        boolean exists = false;
-        exists = jdbcTemplate.queryForObject(sqlQuery, new Long[]{id}, Boolean.class);
-        if (exists == false) {
-            throw new NotFoundException("Пользователь по id: " + id + " не найден!");
-        }
     }
 
 }
